@@ -1,0 +1,130 @@
+package com.example.hire
+
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.tooling.preview.Preview
+import kotlinx.coroutines.launch
+
+@Composable
+@Preview
+fun App(locationPlatform: LocationPlatform? = null) {
+    MaterialTheme {
+        val appState = remember { mutableStateOf(AppState()) }
+        val sessionManager = remember { SessionManager() }
+        val apiService = remember { AuthApiService(sessionManager = sessionManager) }
+        val coroutineScope = rememberCoroutineScope()
+
+        LaunchedEffect(Unit) {
+            locationPlatform?.startLocationUpdates()
+
+            val token = sessionManager.getToken()
+            if (token != null) {
+                apiService.getCurrentUser().onSuccess { user ->
+                    appState.value = appState.value.copy(
+                        currentScreen = Screen.BROWSE,
+                        currentUserId = user.id ?: user.email
+                    )
+                }.onFailure {
+                    // Token expired or invalid, clear it
+                    sessionManager.clearSession()
+                }
+            }
+        }
+
+        when (appState.value.currentScreen) {
+            Screen.LOADING -> {
+                EntryPage(
+                    onLoginClick = {
+                        appState.value = appState.value.copy(currentScreen = Screen.LOGIN)
+                    },
+                    onSignUpClick = {
+                        appState.value = appState.value.copy(currentScreen = Screen.REGISTRATION)
+                    },
+                    onBrowseClick = {
+                        appState.value = appState.value.copy(currentScreen = Screen.BROWSE)
+                    }
+                )
+            }
+            Screen.ENTRY -> {
+                EntryPage(
+                    onLoginClick = {
+                        appState.value = appState.value.copy(currentScreen = Screen.LOGIN)
+                    },
+                    onSignUpClick = {
+                        appState.value = appState.value.copy(currentScreen = Screen.REGISTRATION)
+                    },
+                    onBrowseClick = {
+                        appState.value = appState.value.copy(currentScreen = Screen.BROWSE)
+                    }
+                )
+            }
+            Screen.LOGIN -> {
+                LoginPage(
+                    onBackClick = {
+                        appState.value = appState.value.copy(currentScreen = Screen.ENTRY)
+                    },
+                    onSuccessClick = { userId ->
+                        locationPlatform?.requestPermissionAndFetch { _ ->
+                            appState.value = appState.value.copy(currentScreen = Screen.BROWSE, currentUserId = userId)
+                        } ?: run {
+                            appState.value = appState.value.copy(currentScreen = Screen.BROWSE, currentUserId = userId)
+                        }
+                    }
+                )
+            }
+            Screen.REGISTRATION -> {
+                RegistrationPage(
+                    onBackClick = {
+                        appState.value = appState.value.copy(currentScreen = Screen.ENTRY)
+                    },
+                    onSuccessClick = {
+                        // After registration, update currentUserId and navigate
+                        coroutineScope.launch {
+                            apiService.getCurrentUser().onSuccess { user ->
+                                appState.value = appState.value.copy(
+                                    currentScreen = Screen.BROWSE,
+                                    currentUserId = user.id ?: user.email
+                                )
+                            }.onFailure {
+                                appState.value = appState.value.copy(currentScreen = Screen.BROWSE)
+                            }
+                        }
+                    }
+                )
+            }
+            Screen.BROWSE -> {
+                HomePage(
+                    selectedTab = appState.value.selectedHomePageTab,
+                    onTabChanged = { newTab ->
+                        appState.value = appState.value.copy(selectedHomePageTab = newTab)
+                    },
+                    onBackClick = {
+                        sessionManager.clearSession()
+                        appState.value = AppState()
+                    },
+                    onConversationClick = { userId, userName ->
+                        appState.value = appState.value.copy(
+                            currentScreen = Screen.CHAT,
+                            chatPartnerId = userId,
+                            chatPartnerName = userName
+                        )
+                    }
+                )
+            }
+            Screen.CHAT -> {
+                ChatDetailScreen(
+                    currentUserId = appState.value.currentUserId ?: "",
+                    chatPartnerId = appState.value.chatPartnerId ?: "",
+                    chatPartnerName = appState.value.chatPartnerName ?: "Unknown",
+                    onBackClick = {
+                        appState.value = appState.value.copy(currentScreen = Screen.BROWSE, selectedHomePageTab = 1)
+                    }
+                )
+            }
+        }
+    }
+}
