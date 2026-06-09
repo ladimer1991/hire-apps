@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -124,6 +125,7 @@ val defaultColors = listOf(
     Color(0xFFB2EBF2), Color(0xFFF0F4C3)
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BrowseTab(
     viewModel: BrowseViewModel,
@@ -152,28 +154,36 @@ fun BrowseTab(
         }
     }
 
-    if (isLoading && users.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else if (errorMessage != null && users.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Error loading users: $errorMessage", color = Color.Red)
-        }
-    } else {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 1.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(1.dp)
-        ) {
-            items(users) { user ->
-                UserCard(user, onConversationClick)
+    PullToRefreshBox(
+        isRefreshing = isLoading,
+        onRefresh = { viewModel.loadUsers(forceRefresh = true) },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        if (users.isEmpty() && !isLoading) {
+            if (errorMessage != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Error loading users: $errorMessage", color = Color.Red)
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No users found")
+                }
             }
-            if (isLoading) {
-                item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 1.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp)
+            ) {
+                items(users) { user ->
+                    UserCard(user, onConversationClick)
+                }
+                if (isLoading && users.isNotEmpty()) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
                     }
                 }
             }
@@ -309,6 +319,7 @@ fun UserCard(user: BrowseUser, onConversationClick: (String, String) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessagesTab(
     viewModel: MessagesViewModel,
@@ -321,24 +332,30 @@ fun MessagesTab(
         viewModel.loadConversations()
     }
 
-    if (isLoading && conversations.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(1.dp),
-            contentPadding = PaddingValues(vertical = 1.dp)
-        ) {
-            items(conversations) { conversation ->
-                ConversationCard(
-                    conversation = conversation,
-                    onClick = {
-                        onConversationClick(conversation.id, conversation.name)
-                    }
-                )
+    PullToRefreshBox(
+        isRefreshing = isLoading,
+        onRefresh = { viewModel.loadConversations(forceRefresh = true) },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        if (conversations.isEmpty() && !isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No messages yet")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+                contentPadding = PaddingValues(vertical = 1.dp)
+            ) {
+                items(conversations) { conversation ->
+                    ConversationCard(
+                        conversation = conversation,
+                        onClick = {
+                            onConversationClick(conversation.id, conversation.name)
+                        }
+                    )
+                }
             }
         }
     }
