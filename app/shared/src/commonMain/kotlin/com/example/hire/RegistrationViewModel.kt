@@ -170,10 +170,6 @@ class RegistrationViewModel(
     }
 
     fun register() {
-        if (description.value.isBlank()) {
-            _errorMessage.value = "Description cannot be empty"
-            return
-        }
         if (email.value.isBlank()) {
             _errorMessage.value = "Email cannot be empty"
             return
@@ -256,10 +252,12 @@ class RegistrationViewModel(
             _errorMessage.value = null
             _successMessage.value = null
 
+            val providedServiceString = _selectedServices.joinToString(", ").takeIf { it.isNotBlank() }
+
             authApiService.register(
                 request = RegisterRequest(
-                    description = description.value,
-                    services = _selectedServices.toList(),
+                    description = description.value.takeIf { it.isNotBlank() },
+                    providedService = providedServiceString,
                     email = email.value,
                     username = username.value,
                     password = password.value,

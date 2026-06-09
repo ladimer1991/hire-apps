@@ -3,6 +3,9 @@ package com.example.hire
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.*
+import io.ktor.client.plugins.observer.ResponseObserver
+import io.ktor.client.statement.bodyAsText
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -25,6 +28,34 @@ class AuthApiService(
                 ignoreUnknownKeys = true
             })
         }
+        install(Logging) {
+            logger = object : Logger {
+                override fun log(message: String) {
+                    // Filter out large image data from logs using regex
+                    // (?s) allows . to match newlines
+                    val sanitized = if (message.contains("\"images\"") || message.contains("images=")) {
+                        message.replace(Regex("(?s)\"images\"\\s*:\\s*\\[.*?\\]"), "\"images\": []")
+                               .replace(Regex("(?s)images=\\[.*?\\]"), "images=[]")
+                    } else {
+                        message
+                    }
+
+                    // Split long messages for Logcat compatibility (4KB limit)
+                    sanitized.chunked(3500).forEach { 
+                        println("HTTP_LOG: $it")
+                    }
+                }
+            }
+            level = LogLevel.ALL
+            sanitizeHeader { false }
+        }
+        install(ResponseObserver) {
+            onResponse { response ->
+                val body = response.bodyAsText()
+                val sanitizedBody = body.replace(Regex("(?s)\"images\"\\s*:\\s*\\[.*?\\]"), "\"images\": []")
+                println("HTTP_LOG: RESPONSE_BODY: $sanitizedBody")
+            }
+        }
         defaultRequest {
             sessionManager.getToken()?.let { token ->
                 header("Authorization", "Bearer $token")
@@ -33,6 +64,8 @@ class AuthApiService(
     }
 
     suspend fun register(request: RegisterRequest): Result<AuthResponse> = runCatching {
+        val requestLog = request.copy(images = emptyList())
+        println("HTTP_LOG: REQUEST_BODY: $requestLog")
         val response: AuthResponse = httpClient.post("$baseUrl/api/users/register") {
             contentType(ContentType.Application.Json)
             setBody(request)

@@ -35,17 +35,6 @@ fun Application.module() {
                 val request = call.receive<RegisterRequest>()
 
                 // Validate request
-                if (request.description.isBlank()) {
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        RegisterResponse(
-                            success = false,
-                            message = "Description cannot be empty"
-                        )
-                    )
-                    return@post
-                }
-
                 if (request.email.isBlank() || !request.email.contains("@")) {
                     call.respond(
                         HttpStatusCode.BadRequest,
