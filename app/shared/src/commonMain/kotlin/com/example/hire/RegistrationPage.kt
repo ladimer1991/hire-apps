@@ -131,18 +131,6 @@ fun RegistrationPage(
                     }
                 }
 
-                // Full Name Field
-                OutlinedTextField(
-                    value = viewModel.fullName.value,
-                    onValueChange = { viewModel.updateFullName(it) },
-                    label = { Text("Full Name") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    singleLine = true,
-                    enabled = !isLoading
-                )
-
                 // Email Field
                 OutlinedTextField(
                     value = viewModel.email.value,
@@ -153,6 +141,20 @@ fun RegistrationPage(
                         .padding(bottom = 16.dp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    enabled = !isLoading
+                )
+
+                // Password Field
+                OutlinedTextField(
+                    value = viewModel.password.value,
+                    onValueChange = { viewModel.updatePassword(it) },
+                    label = { Text("Password") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     enabled = !isLoading
                 )
 
@@ -168,19 +170,65 @@ fun RegistrationPage(
                     enabled = !isLoading
                 )
 
-                // Password Field
+                // Description Field
                 OutlinedTextField(
-                    value = viewModel.password.value,
-                    onValueChange = { viewModel.updatePassword(it) },
-                    label = { Text("Password") },
+                    value = viewModel.description.value,
+                    onValueChange = { viewModel.updateDescription(it) },
+                    label = { Text("Description") },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 24.dp),
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        .padding(bottom = 16.dp),
+                    minLines = 3,
+                    maxLines = 5,
+                    supportingText = {
+                        Text(
+                            text = "${viewModel.description.value.length} / 300",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.End
+                        )
+                    },
                     enabled = !isLoading
                 )
+
+                // Services Selection
+                Text(
+                    text = "select the service that you will provide.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    color = Color.Gray
+                )
+
+                val services = listOf(
+                    "Tutoring",
+                    "Handyman",
+                    "Pet sitting",
+                    "Quality time",
+                    "Other",
+                    "I will not provide any services"
+                )
+
+                services.forEach { service ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.toggleService(service) }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = viewModel.selectedServices.contains(service),
+                            onCheckedChange = { viewModel.toggleService(service) },
+                            enabled = !isLoading
+                        )
+                        Text(
+                            text = service,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
                 Text("Profile Images", style = MaterialTheme.typography.titleSmall)

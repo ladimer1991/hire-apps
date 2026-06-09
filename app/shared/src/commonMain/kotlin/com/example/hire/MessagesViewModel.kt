@@ -45,7 +45,7 @@ class MessagesViewModel(
                     
                     Conversation(
                         id = userId,
-                        name = user.fullName.takeIf { it.isNotBlank() } ?: user.username,
+                        name = user.username,
                         lastMessage = lastMsg?.content ?: "",
                         timestamp = lastMsg?.timestamp?.toString() ?: "",
                         color = defaultColors[index % defaultColors.size],

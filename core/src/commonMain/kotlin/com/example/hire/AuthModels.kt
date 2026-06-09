@@ -5,7 +5,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RegisterRequest(
     val id: String? = null,
-    val fullName: String,
+    val description: String = "",
+    val services: List<String> = emptyList(),
     val email: String,
     val username: String,
     val password: String,

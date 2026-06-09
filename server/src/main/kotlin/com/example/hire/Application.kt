@@ -35,12 +35,12 @@ fun Application.module() {
                 val request = call.receive<RegisterRequest>()
 
                 // Validate request
-                if (request.fullName.isBlank()) {
+                if (request.description.isBlank()) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         RegisterResponse(
                             success = false,
-                            message = "Full name cannot be empty"
+                            message = "Description cannot be empty"
                         )
                     )
                     return@post

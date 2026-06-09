@@ -32,7 +32,7 @@ class BrowseViewModel(
                 _users.value = fetchedUsers.filter { (it.id ?: it.email) != myId }.mapIndexed { index, user ->
                     BrowseUser(
                         id = user.id ?: user.email,
-                        name = user.fullName.takeIf { it.isNotBlank() } ?: user.username,
+                        name = user.username,
                         profession = "Professional",
                         color = defaultColors[index % defaultColors.size],
                         base64Images = user.images

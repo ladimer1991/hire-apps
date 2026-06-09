@@ -4,7 +4,8 @@ import java.util.*
 
 data class User(
     val id: String = UUID.randomUUID().toString(),
-    val fullName: String,
+    val description: String = "",
+    val services: List<String> = emptyList(),
     val email: String,
     val username: String,
     val password: String, // In production, this should be hashed with bcrypt or similar
@@ -30,7 +31,8 @@ object UserRepository {
 
         // Create new user
         val user = User(
-            fullName = request.fullName,
+            description = request.description,
+            services = request.services,
             email = request.email,
             username = request.username,
             password = request.password,

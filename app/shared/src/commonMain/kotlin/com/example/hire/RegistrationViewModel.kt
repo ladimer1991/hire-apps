@@ -11,8 +11,11 @@ class RegistrationViewModel(
     private val authApiService: AuthApiService = AuthApiService()
 ) : ViewModel() {
 
-    private val _fullName = mutableStateOf("")
-    val fullName: State<String> = _fullName
+    private val _description = mutableStateOf("")
+    val description: State<String> = _description
+
+    private val _selectedServices = mutableStateListOf<String>()
+    val selectedServices: List<String> = _selectedServices
 
     private val _email = mutableStateOf("")
     val email: State<String> = _email
@@ -65,8 +68,32 @@ class RegistrationViewModel(
     private val _successMessage = mutableStateOf<String?>(null)
     val successMessage: State<String?> = _successMessage
 
-    fun updateFullName(value: String) {
-        _fullName.value = value
+    fun updateDescription(value: String) {
+        if (value.length <= 300) {
+            _description.value = value
+            _errorMessage.value = null
+        }
+    }
+
+    fun toggleService(service: String) {
+        val noneOption = "I will not provide any services"
+        if (service == noneOption) {
+            if (_selectedServices.contains(noneOption)) {
+                _selectedServices.remove(noneOption)
+            } else {
+                _selectedServices.clear()
+                _selectedServices.add(noneOption)
+            }
+        } else {
+            if (_selectedServices.contains(noneOption)) {
+                _selectedServices.remove(noneOption)
+            }
+            if (_selectedServices.contains(service)) {
+                _selectedServices.remove(service)
+            } else {
+                _selectedServices.add(service)
+            }
+        }
         _errorMessage.value = null
     }
 
@@ -143,8 +170,8 @@ class RegistrationViewModel(
     }
 
     fun register() {
-        if (fullName.value.isBlank()) {
-            _errorMessage.value = "Full name cannot be empty"
+        if (description.value.isBlank()) {
+            _errorMessage.value = "Description cannot be empty"
             return
         }
         if (email.value.isBlank()) {
@@ -231,7 +258,8 @@ class RegistrationViewModel(
 
             authApiService.register(
                 request = RegisterRequest(
-                    fullName = fullName.value,
+                    description = description.value,
+                    services = _selectedServices.toList(),
                     email = email.value,
                     username = username.value,
                     password = password.value,
@@ -251,7 +279,8 @@ class RegistrationViewModel(
     }
 
     private fun clearForm() {
-        _fullName.value = ""
+        _description.value = ""
+        _selectedServices.clear()
         _email.value = ""
         _username.value = ""
         _password.value = ""
