@@ -48,7 +48,8 @@ class MessagesViewModel(
                         name = user.fullName.takeIf { it.isNotBlank() } ?: user.username,
                         lastMessage = lastMsg?.content ?: "",
                         timestamp = lastMsg?.timestamp?.toString() ?: "",
-                        color = defaultColors[index % defaultColors.size]
+                        color = defaultColors[index % defaultColors.size],
+                        base64Images = user.images
                     )
                 }.filter { it.lastMessage.isNotBlank() }
                  .sortedByDescending { it.timestamp }

@@ -27,7 +27,8 @@ data class Conversation(
     val name: String,
     val lastMessage: String,
     val timestamp: String,
-    val color: Color
+    val color: Color,
+    val base64Images: List<String> = emptyList()
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -327,10 +328,9 @@ fun MessagesTab(
     } else {
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 8.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+            contentPadding = PaddingValues(vertical = 1.dp)
         ) {
             items(conversations) { conversation ->
                 ConversationCard(
@@ -353,8 +353,8 @@ fun ConversationCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Row(
@@ -373,12 +373,34 @@ fun ConversationCard(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = conversation.name.take(1).uppercase(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (conversation.base64Images.isNotEmpty()) {
+                        val base64Str = conversation.base64Images[0]
+                        val bitmap = remember(base64Str) {
+                            decodeBase64ToBitmap(base64Str)
+                        }
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap,
+                                contentDescription = conversation.name,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Text(
+                                text = conversation.name.take(1).uppercase(),
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = conversation.name.take(1).uppercase(),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
