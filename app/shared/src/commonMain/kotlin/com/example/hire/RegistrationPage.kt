@@ -183,7 +183,7 @@ fun RegistrationPage(
                 )
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-                Text("Profile Images (up to 4)", style = MaterialTheme.typography.titleSmall)
+                Text("Profile Images", style = MaterialTheme.typography.titleSmall)
                 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
