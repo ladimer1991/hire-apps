@@ -115,6 +115,7 @@ data class BrowseUser(
     val id: String,
     val name: String,
     val profession: String,
+    val description: String? = null,
     val color: Color,
     val base64Images: List<String> = emptyList()
 )
@@ -282,6 +283,17 @@ fun UserCard(user: BrowseUser, onConversationClick: (String, String) -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
+
+                user.description?.let { desc ->
+                    Text(
+                        text = desc,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.DarkGray,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

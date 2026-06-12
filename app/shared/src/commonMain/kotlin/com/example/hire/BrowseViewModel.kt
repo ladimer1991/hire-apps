@@ -33,7 +33,8 @@ class BrowseViewModel(
                     BrowseUser(
                         id = user.id ?: user.email,
                         name = user.username,
-                        profession = "Professional",
+                        profession = user.providedService ?: "Professional",
+                        description = user.description,
                         color = defaultColors[index % defaultColors.size],
                         base64Images = user.images
                     )
