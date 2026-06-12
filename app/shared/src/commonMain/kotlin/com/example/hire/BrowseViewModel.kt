@@ -19,16 +19,24 @@ class BrowseViewModel(
     val errorMessage: State<String?> = _errorMessage
 
     private var hasLoadedOnce = false
+    private val _searchQuery = mutableStateOf("")
+    val searchQuery: State<String> = _searchQuery
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+        loadUsers(forceRefresh = true)
+    }
 
     fun loadUsers(forceRefresh: Boolean = false) {
-        if (hasLoadedOnce && !forceRefresh) return
+        if (hasLoadedOnce && !forceRefresh && _searchQuery.value.isEmpty()) return
 
         viewModelScope.launch {
             _isLoading.value = true
             val meResult = apiService.getCurrentUser().getOrNull()
             val myId = meResult?.id ?: meResult?.email ?: ""
             
-            apiService.getAllUsers().onSuccess { fetchedUsers ->
+            val query = _searchQuery.value.takeIf { it.isNotBlank() }
+            apiService.getAllUsers(query).onSuccess { fetchedUsers ->
                 _users.value = fetchedUsers.filter { (it.id ?: it.email) != myId }.mapIndexed { index, user ->
                     BrowseUser(
                         id = user.id ?: user.email,

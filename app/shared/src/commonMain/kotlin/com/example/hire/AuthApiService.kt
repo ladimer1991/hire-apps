@@ -83,8 +83,9 @@ class AuthApiService(
         response
     }
     
-    suspend fun getAllUsers(): Result<List<RegisterRequest>> = runCatching {
-        httpClient.get("$baseUrl/api/users").body()
+    suspend fun getAllUsers(searchQuery: String? = null): Result<List<RegisterRequest>> = runCatching {
+        val url = if (searchQuery != null) "$baseUrl/api/users?q=$searchQuery" else "$baseUrl/api/users"
+        httpClient.get(url).body()
     }
 
     suspend fun getCurrentUser(): Result<RegisterRequest> = runCatching {

@@ -47,17 +47,50 @@ fun HomePage(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Hire", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    TextButton(onClick = onBackClick) {
-                        Text("Exit", color = Color(0xFF007AFF))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
+            if (currentTab == 0) {
+                Surface(
+                    shadowElevation = 4.dp,
+                    color = Color.White
+                ) {
+                    OutlinedTextField(
+                        value = browseViewModel.searchQuery.value,
+                        onValueChange = { browseViewModel.updateSearchQuery(it) },
+                        modifier = Modifier
+                            .statusBarsPadding()
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        placeholder = { Text("Search services...") },
+                        leadingIcon = { Text("🔍") },
+                        trailingIcon = {
+                            if (browseViewModel.searchQuery.value.isNotEmpty()) {
+                                IconButton(onClick = { browseViewModel.updateSearchQuery("") }) {
+                                    Text("✕")
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(24.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5F5),
+                            unfocusedContainerColor = Color(0xFFF5F5F5),
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedBorderColor = Color(0xFF007AFF)
+                        )
+                    )
+                }
+            } else {
+                CenterAlignedTopAppBar(
+                    title = { Text("Hire", fontWeight = FontWeight.Bold) },
+                    navigationIcon = {
+                        TextButton(onClick = onBackClick) {
+                            Text("Exit", color = Color(0xFF007AFF))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.White
+                    )
                 )
-            )
+            }
         },
         bottomBar = {
             NavigationBar(
@@ -209,7 +242,12 @@ fun UserCard(user: BrowseUser, onConversationClick: (String, String) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(264.dp)
-                    .padding(8.dp)
+                    .padding(
+                        start = 8.dp,
+                        top = 8.dp,
+                        end = 8.dp,
+                        bottom = if (user.base64Images.size > 1) 0.dp else 4.dp
+                    )
                     .clip(RoundedCornerShape(12.dp))
                     .background(user.color),
                 contentAlignment = Alignment.Center
@@ -250,29 +288,29 @@ fun UserCard(user: BrowseUser, onConversationClick: (String, String) -> Unit) {
                         }
                     }
                 }
-            }
 
-            if (user.base64Images.size > 1) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp, bottom = 4.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    repeat(user.base64Images.size) { index ->
-                        Surface(
-                            modifier = Modifier
-                                .padding(horizontal = 4.dp)
-                                .size(8.dp),
-                            shape = CircleShape,
-                            color = if (index == pagerState.currentPage) Color(0xFF007AFF) else Color.LightGray
-                        ) {}
+                if (user.base64Images.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        repeat(user.base64Images.size) { index ->
+                            Surface(
+                                modifier = Modifier
+                                    .padding(horizontal = 4.dp)
+                                    .size(8.dp),
+                                shape = CircleShape,
+                                color = if (index == pagerState.currentPage) Color.White else Color.White.copy(alpha = 0.5f)
+                            ) {}
+                        }
                     }
                 }
             }
 
-            Column(modifier = Modifier.padding(8.dp)) {
+            Column(modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 4.dp)) {
                 Text(
                     text = user.name,
                     style = MaterialTheme.typography.titleLarge,
