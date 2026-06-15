@@ -38,6 +38,7 @@ fun HomePage(
     selectedTab: Int = 0,
     onTabChanged: (Int) -> Unit = {},
     onBackClick: () -> Unit = {},
+    onUserClick: (BrowseUser) -> Unit = {},
     onConversationClick: (userId: String, userName: String) -> Unit = { _, _ -> },
     browseViewModel: BrowseViewModel = viewModel { BrowseViewModel() },
     messagesViewModel: MessagesViewModel = viewModel { MessagesViewModel() }
@@ -135,7 +136,11 @@ fun HomePage(
                 .background(Color(0xFFF5F5F5))
         ) {
             when (currentTab) {
-                0 -> BrowseTab(viewModel = browseViewModel, onConversationClick = onConversationClick)
+                0 -> BrowseTab(
+                    viewModel = browseViewModel,
+                    onUserClick = onUserClick,
+                    onConversationClick = onConversationClick
+                )
                 1 -> MessagesTab(viewModel = messagesViewModel, onConversationClick = onConversationClick)
                 2 -> CategoriesTab()
                 3 -> SavedTab()
@@ -150,7 +155,8 @@ data class BrowseUser(
     val profession: String,
     val description: String? = null,
     val color: Color,
-    val base64Images: List<String> = emptyList()
+    val base64Images: List<String> = emptyList(),
+    val reviews: List<Review> = emptyList()
 )
 
 val defaultColors = listOf(
@@ -163,6 +169,7 @@ val defaultColors = listOf(
 @Composable
 fun BrowseTab(
     viewModel: BrowseViewModel,
+    onUserClick: (BrowseUser) -> Unit,
     onConversationClick: (userId: String, userName: String) -> Unit
 ) {
     val users by viewModel.users
@@ -211,7 +218,7 @@ fun BrowseTab(
                 verticalArrangement = Arrangement.spacedBy(1.dp)
             ) {
                 items(users) { user ->
-                    UserCard(user, onConversationClick)
+                    UserCard(user, onUserClick, onConversationClick)
                 }
                 if (isLoading && users.isNotEmpty()) {
                     item {
@@ -227,7 +234,11 @@ fun BrowseTab(
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-fun UserCard(user: BrowseUser, onConversationClick: (String, String) -> Unit) {
+fun UserCard(
+    user: BrowseUser,
+    onUserClick: (BrowseUser) -> Unit,
+    onConversationClick: (String, String) -> Unit
+) {
     val pageCount = if (user.base64Images.isNotEmpty()) user.base64Images.size else 1
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { pageCount })
 
@@ -249,6 +260,7 @@ fun UserCard(user: BrowseUser, onConversationClick: (String, String) -> Unit) {
                         bottom = if (user.base64Images.size > 1) 0.dp else 4.dp
                     )
                     .clip(RoundedCornerShape(12.dp))
+                    .clickable { onUserClick(user) }
                     .background(user.color),
                 contentAlignment = Alignment.Center
             ) {

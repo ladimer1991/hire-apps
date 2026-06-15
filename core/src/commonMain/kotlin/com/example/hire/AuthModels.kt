@@ -10,9 +10,19 @@ data class RegisterRequest(
     val email: String,
     val username: String,
     val password: String,
-    val images: List<String> = emptyList(), // Base64 encoded images
+    val images: List<String> = emptyList(),
+    val reviews: List<Review> = emptyList(),
     val creditCard: CreditCardInfo? = null,
     val billingAddress: BillingAddress? = null
+)
+
+@Serializable
+data class Review(
+    val reviewerId: String? = null,
+    val reviewerUsername: String? = null,
+    val content: String,
+    val rating: Double,
+    val timestamp: Long = 0L
 )
 
 @Serializable

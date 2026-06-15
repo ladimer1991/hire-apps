@@ -112,6 +112,12 @@ fun App(locationPlatform: LocationPlatform? = null) {
                             chatPartnerId = userId,
                             chatPartnerName = userName
                         )
+                    },
+                    onUserClick = { user ->
+                        appState.value = appState.value.copy(
+                            currentScreen = Screen.USER_DETAILS,
+                            selectedUser = user
+                        )
                     }
                 )
             }
@@ -124,6 +130,24 @@ fun App(locationPlatform: LocationPlatform? = null) {
                         appState.value = appState.value.copy(currentScreen = Screen.BROWSE, selectedHomePageTab = 1)
                     }
                 )
+            }
+            Screen.USER_DETAILS -> {
+                val user = appState.value.selectedUser
+                if (user != null) {
+                    UserDetailsPage(
+                        user = user,
+                        onBackClick = {
+                            appState.value = appState.value.copy(currentScreen = Screen.BROWSE)
+                        },
+                        onMessageClick = { userId, userName ->
+                            appState.value = appState.value.copy(
+                                currentScreen = Screen.CHAT,
+                                chatPartnerId = userId,
+                                chatPartnerName = userName
+                            )
+                        }
+                    )
+                }
             }
         }
     }

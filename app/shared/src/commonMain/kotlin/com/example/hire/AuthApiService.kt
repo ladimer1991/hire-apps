@@ -103,6 +103,13 @@ class AuthApiService(
         httpClient.get("$baseUrl/api/messages/conversation/$otherUserId").body()
     }
 
+    suspend fun addReview(targetUserId: String, content: String, rating: Double): Result<RegisterRequest> = runCatching {
+        httpClient.post("$baseUrl/api/users/$targetUserId/reviews") {
+            contentType(ContentType.Application.Json)
+            setBody(Review(content = content, rating = rating))
+        }.body()
+    }
+
     suspend fun getHistory(): Result<List<Message>> = runCatching {
         httpClient.get("$baseUrl/api/messages/history").body()
     }

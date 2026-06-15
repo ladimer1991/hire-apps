@@ -44,7 +44,8 @@ class BrowseViewModel(
                         profession = user.providedService ?: "Professional",
                         description = user.description,
                         color = defaultColors[index % defaultColors.size],
-                        base64Images = user.images
+                        base64Images = user.images,
+                        reviews = user.reviews
                     )
                 }
                 hasLoadedOnce = true

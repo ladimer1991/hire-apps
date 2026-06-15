@@ -6,7 +6,8 @@ enum class Screen {
     LOGIN,
     REGISTRATION,
     BROWSE,
-    CHAT
+    CHAT,
+    USER_DETAILS
 }
 
 data class AppState(
@@ -14,5 +15,6 @@ data class AppState(
     val selectedHomePageTab: Int = 0,
     val chatPartnerId: String? = null,
     val chatPartnerName: String? = null,
-    val currentUserId: String? = null
+    val currentUserId: String? = null,
+    val selectedUser: BrowseUser? = null
 )
