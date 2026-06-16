@@ -153,6 +153,7 @@ data class BrowseUser(
     val id: String,
     val name: String,
     val profession: String,
+    val hourlyRate: Double? = null,
     val description: String? = null,
     val color: Color,
     val base64Images: List<String> = emptyList(),
@@ -322,17 +323,33 @@ fun UserCard(
                 }
             }
 
-            Column(modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 4.dp)) {
-                Text(
-                    text = user.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = user.profession,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
+            Column(modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = if (user.base64Images.size > 1) 0.dp else 4.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = user.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = user.profession,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
+                    user.hourlyRate?.let { rate ->
+                        Text(
+                            text = "$${rate}/hr",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black
+                        )
+                    }
+                }
 
                 user.description?.let { desc ->
                     Text(

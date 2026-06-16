@@ -42,6 +42,7 @@ class BrowseViewModel(
                         id = user.id ?: user.email,
                         name = user.username,
                         profession = user.providedService ?: "Professional",
+                        hourlyRate = user.hourlyRate,
                         description = user.description,
                         color = defaultColors[index % defaultColors.size],
                         base64Images = user.images,

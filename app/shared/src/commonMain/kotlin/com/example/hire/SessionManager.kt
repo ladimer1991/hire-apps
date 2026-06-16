@@ -8,14 +8,27 @@ class SessionManager {
     private val settings: Settings = createSecureSettings()
 
     fun saveToken(token: String) {
-        settings.putString("jwt_token", token)
+        try {
+            settings.putString("jwt_token", token)
+        } catch (e: Exception) {
+            println("Error saving token: ${e.message}")
+        }
     }
 
     fun getToken(): String? {
-        return settings.getStringOrNull("jwt_token")
+        return try {
+            settings.getStringOrNull("jwt_token")
+        } catch (e: Exception) {
+            println("Error retrieving token: ${e.message}")
+            null
+        }
     }
 
     fun clearSession() {
-        settings.remove("jwt_token")
+        try {
+            settings.remove("jwt_token")
+        } catch (e: Exception) {
+            println("Error clearing session: ${e.message}")
+        }
     }
 }

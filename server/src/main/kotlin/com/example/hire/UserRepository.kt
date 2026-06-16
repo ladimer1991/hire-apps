@@ -6,6 +6,7 @@ data class User(
     val id: String = UUID.randomUUID().toString(),
     val description: String? = null,
     val providedService: String? = null,
+    val hourlyRate: Double? = null,
     val email: String,
     val username: String,
     val password: String, // In production, this should be hashed with bcrypt or similar
@@ -33,6 +34,7 @@ object UserRepository {
         val user = User(
             description = request.description,
             providedService = request.providedService,
+            hourlyRate = request.hourlyRate,
             email = request.email,
             username = request.username,
             password = request.password,

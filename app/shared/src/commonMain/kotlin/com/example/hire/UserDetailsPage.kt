@@ -127,11 +127,26 @@ fun UserDetailsPage(
             }
 
             Column(modifier = Modifier.padding(24.dp)) {
-                Text(
-                    text = user.name,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = user.name,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    user.hourlyRate?.let { rate ->
+                        Text(
+                            text = "$${rate}/hr",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black
+                        )
+                    }
+                }
                 
                 user.profession?.let {
                     Text(

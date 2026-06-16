@@ -14,8 +14,11 @@ class RegistrationViewModel(
     private val _description = mutableStateOf("")
     val description: State<String> = _description
 
-    private val _selectedServices = mutableStateListOf<String>()
-    val selectedServices: List<String> = _selectedServices
+    private val _providedService = mutableStateOf("")
+    val providedService: State<String> = _providedService
+    
+    private val _hourlyRate = mutableStateOf("")
+    val hourlyRate: State<String> = _hourlyRate
 
     private val _email = mutableStateOf("")
     val email: State<String> = _email
@@ -69,32 +72,21 @@ class RegistrationViewModel(
     val successMessage: State<String?> = _successMessage
 
     fun updateDescription(value: String) {
-        if (value.length <= 300) {
-            _description.value = value
-            _errorMessage.value = null
-        }
+        _description.value = value
+        _errorMessage.value = null
     }
 
-    fun toggleService(service: String) {
-        val noneOption = "I will not provide any services"
-        if (service == noneOption) {
-            if (_selectedServices.contains(noneOption)) {
-                _selectedServices.remove(noneOption)
-            } else {
-                _selectedServices.clear()
-                _selectedServices.add(noneOption)
-            }
-        } else {
-            if (_selectedServices.contains(noneOption)) {
-                _selectedServices.remove(noneOption)
-            }
-            if (_selectedServices.contains(service)) {
-                _selectedServices.remove(service)
-            } else {
-                _selectedServices.add(service)
-            }
-        }
+    fun updateProvidedService(value: String) {
+        _providedService.value = value
         _errorMessage.value = null
+    }
+    
+    fun updateHourlyRate(value: String) {
+        // Only allow numeric input and one decimal point
+        if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
+            _hourlyRate.value = value
+            _errorMessage.value = null
+        }
     }
 
     fun updateEmail(value: String) {
@@ -170,64 +162,33 @@ class RegistrationViewModel(
     }
 
     fun register() {
-        if (email.value.isBlank()) {
-            _errorMessage.value = "Email cannot be empty"
-            return
-        }
-        if (!email.value.contains("@")) {
-            _errorMessage.value = "Invalid email format"
-            return
-        }
         if (username.value.isBlank()) {
             _errorMessage.value = "Username cannot be empty"
+            return
+        }
+        if (email.value.isBlank()) {
+            _errorMessage.value = "Email cannot be empty"
             return
         }
         if (password.value.isBlank()) {
             _errorMessage.value = "Password cannot be empty"
             return
         }
-        if (password.value.length < 6) {
-            _errorMessage.value = "Password must be at least 6 characters"
-            return
+        
+        val rate = _hourlyRate.value.toDoubleOrNull()
+        if (_hourlyRate.value.isNotBlank()) {
+
+            if (rate != null) {
+                if (rate >= 100000) {
+                    _errorMessage.value = "Hourly rate must be under 100,000"
+                    return
+                }
+            }
         }
 
-        // Credit Card Validation
         val hasCardInfo = cardNumber.value.isNotBlank() || cardExpiration.value.isNotBlank() || 
                          cardCvv.value.isNotBlank() || cardholderName.value.isNotBlank()
         
-        if (hasCardInfo) {
-            if (cardNumber.value.length < 13) {
-                _errorMessage.value = "Invalid card number"
-                return
-            }
-            if (!cardExpiration.value.matches(Regex("\\d{2}/\\d{2}"))) {
-                _errorMessage.value = "Invalid expiration date (MM/YY)"
-                return
-            }
-            if (cardCvv.value.length < 3) {
-                _errorMessage.value = "Invalid CVV"
-                return
-            }
-            if (cardholderName.value.isBlank()) {
-                _errorMessage.value = "Cardholder name is required"
-                return
-            }
-        }
-
-        // Billing Address Validation
-        val hasBillingInfo = billingStreet.value.isNotBlank() || billingCity.value.isNotBlank() ||
-                            billingState.value.isNotBlank() || billingZipCode.value.isNotBlank() ||
-                            billingCountry.value.isNotBlank()
-
-        if (hasBillingInfo) {
-            if (billingStreet.value.isBlank() || billingCity.value.isBlank() || 
-                billingState.value.isBlank() || billingZipCode.value.isBlank() || 
-                billingCountry.value.isBlank()) {
-                _errorMessage.value = "Complete billing address is required"
-                return
-            }
-        }
-
         val creditCard = if (hasCardInfo) {
             CreditCardInfo(
                 number = cardNumber.value,
@@ -236,6 +197,10 @@ class RegistrationViewModel(
                 cardholderName = cardholderName.value
             )
         } else null
+
+        val hasBillingInfo = billingStreet.value.isNotBlank() || billingCity.value.isNotBlank() ||
+                            billingState.value.isNotBlank() || billingZipCode.value.isNotBlank() ||
+                            billingCountry.value.isNotBlank()
 
         val billingAddress = if (hasBillingInfo) {
             BillingAddress(
@@ -252,12 +217,11 @@ class RegistrationViewModel(
             _errorMessage.value = null
             _successMessage.value = null
 
-            val providedServiceString = _selectedServices.joinToString(", ").takeIf { it.isNotBlank() }
-
             authApiService.register(
                 request = RegisterRequest(
-                    description = description.value.takeIf { it.isNotBlank() },
-                    providedService = providedServiceString,
+                    description = _description.value.takeIf { it.isNotBlank() },
+                    providedService = _providedService.value.takeIf { it.isNotBlank() },
+                    hourlyRate = rate,
                     email = email.value,
                     username = username.value,
                     password = password.value,
@@ -278,7 +242,8 @@ class RegistrationViewModel(
 
     private fun clearForm() {
         _description.value = ""
-        _selectedServices.clear()
+        _providedService.value = ""
+        _hourlyRate.value = ""
         _email.value = ""
         _username.value = ""
         _password.value = ""
