@@ -6,4 +6,5 @@ import android.content.Context
 @SuppressLint("StaticFieldLeak")
 object AppContext {
     var context: Context? = null
+    var currentUserId: String? = null
 }

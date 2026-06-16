@@ -36,6 +36,8 @@ data class Conversation(
 @Composable
 fun HomePage(
     selectedTab: Int = 0,
+    currentUserId: String? = null,
+    currentUserImage: String? = null,
     onTabChanged: (Int) -> Unit = {},
     onBackClick: () -> Unit = {},
     onUserClick: (BrowseUser) -> Unit = {},
@@ -44,7 +46,7 @@ fun HomePage(
     messagesViewModel: MessagesViewModel = viewModel { MessagesViewModel() }
 ) {
     var currentTab by remember { mutableStateOf(selectedTab) }
-    val tabs = listOf("Browse", "Messages", "Categories", "Saved")
+    val tabs = listOf("Browse", "Messages", "Categories", "Profile")
 
     Scaffold(
         topBar = {
@@ -112,7 +114,23 @@ fun HomePage(
                                     "Browse" -> "🔍"
                                     "Messages" -> "💬"
                                     "Categories" -> "📁"
-                                    "Saved" -> "🔖"
+                                    "Profile" -> {
+                                        if (currentUserImage != null) {
+                                            val bitmap = remember(currentUserImage) {
+                                                decodeBase64ToBitmap(currentUserImage)
+                                            }
+                                            if (bitmap != null) {
+                                                Image(
+                                                    bitmap = bitmap,
+                                                    contentDescription = "Profile",
+                                                    modifier = Modifier.size(24.dp).clip(CircleShape),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                                return@NavigationBarItem
+                                            }
+                                        }
+                                        "👤"
+                                    }
                                     else -> "•"
                                 }
                             )
@@ -143,7 +161,7 @@ fun HomePage(
                 )
                 1 -> MessagesTab(viewModel = messagesViewModel, onConversationClick = onConversationClick)
                 2 -> CategoriesTab()
-                3 -> SavedTab()
+                3 -> ProfileTab()
             }
         }
     }
@@ -534,13 +552,13 @@ fun CategoriesTab() {
 }
 
 @Composable
-fun SavedTab() {
+fun ProfileTab() {
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Saved Items", style = MaterialTheme.typography.headlineMedium)
-        Text("Items you have bookmarked will appear here.", color = Color.Gray)
+        Text("Profile", style = MaterialTheme.typography.headlineMedium)
+        Text("Your profile and settings will appear here.", color = Color.Gray)
     }
 }

@@ -26,7 +26,8 @@ fun App(locationPlatform: LocationPlatform? = null) {
                 apiService.getCurrentUser().onSuccess { user ->
                     appState.value = appState.value.copy(
                         currentScreen = Screen.BROWSE,
-                        currentUserId = user.id ?: user.email
+                        currentUserId = user.id ?: user.email,
+                        currentUserImage = user.images.firstOrNull()
                     )
                 }.onFailure {
                     // Token expired or invalid, clear it
@@ -69,9 +70,23 @@ fun App(locationPlatform: LocationPlatform? = null) {
                     },
                     onSuccessClick = { userId ->
                         locationPlatform?.requestPermissionAndFetch { _ ->
-                            appState.value = appState.value.copy(currentScreen = Screen.BROWSE, currentUserId = userId)
+                            coroutineScope.launch {
+                                val user = apiService.getCurrentUser().getOrNull()
+                                appState.value = appState.value.copy(
+                                    currentScreen = Screen.BROWSE,
+                                    currentUserId = userId,
+                                    currentUserImage = user?.images?.firstOrNull()
+                                )
+                            }
                         } ?: run {
-                            appState.value = appState.value.copy(currentScreen = Screen.BROWSE, currentUserId = userId)
+                            coroutineScope.launch {
+                                val user = apiService.getCurrentUser().getOrNull()
+                                appState.value = appState.value.copy(
+                                    currentScreen = Screen.BROWSE,
+                                    currentUserId = userId,
+                                    currentUserImage = user?.images?.firstOrNull()
+                                )
+                            }
                         }
                     }
                 )
@@ -87,7 +102,8 @@ fun App(locationPlatform: LocationPlatform? = null) {
                             apiService.getCurrentUser().onSuccess { user ->
                                 appState.value = appState.value.copy(
                                     currentScreen = Screen.BROWSE,
-                                    currentUserId = user.id ?: user.email
+                                    currentUserId = user.id ?: user.email,
+                                    currentUserImage = user.images.firstOrNull()
                                 )
                             }.onFailure {
                                 appState.value = appState.value.copy(currentScreen = Screen.BROWSE)
@@ -99,6 +115,8 @@ fun App(locationPlatform: LocationPlatform? = null) {
             Screen.BROWSE -> {
                 HomePage(
                     selectedTab = appState.value.selectedHomePageTab,
+                    currentUserId = appState.value.currentUserId,
+                    currentUserImage = appState.value.currentUserImage,
                     onTabChanged = { newTab ->
                         appState.value = appState.value.copy(selectedHomePageTab = newTab)
                     },
