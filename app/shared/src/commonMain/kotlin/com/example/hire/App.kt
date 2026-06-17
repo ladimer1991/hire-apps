@@ -27,6 +27,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                     appState.value = appState.value.copy(
                         currentScreen = Screen.BROWSE,
                         currentUserId = user.id ?: user.email,
+                        currentUserName = user.username,
                         currentUserImage = user.images.firstOrNull()
                     )
                 }.onFailure {
@@ -75,6 +76,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                                 appState.value = appState.value.copy(
                                     currentScreen = Screen.BROWSE,
                                     currentUserId = userId,
+                                    currentUserName = user?.username,
                                     currentUserImage = user?.images?.firstOrNull()
                                 )
                             }
@@ -84,6 +86,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                                 appState.value = appState.value.copy(
                                     currentScreen = Screen.BROWSE,
                                     currentUserId = userId,
+                                    currentUserName = user?.username,
                                     currentUserImage = user?.images?.firstOrNull()
                                 )
                             }
@@ -103,6 +106,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                                 appState.value = appState.value.copy(
                                     currentScreen = Screen.BROWSE,
                                     currentUserId = user.id ?: user.email,
+                                    currentUserName = user.username,
                                     currentUserImage = user.images.firstOrNull()
                                 )
                             }.onFailure {
@@ -116,6 +120,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                 HomePage(
                     selectedTab = appState.value.selectedHomePageTab,
                     currentUserId = appState.value.currentUserId,
+                    currentUserName = appState.value.currentUserName,
                     currentUserImage = appState.value.currentUserImage,
                     onTabChanged = { newTab ->
                         appState.value = appState.value.copy(selectedHomePageTab = newTab)

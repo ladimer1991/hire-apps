@@ -16,6 +16,7 @@ data class AppState(
     val chatPartnerId: String? = null,
     val chatPartnerName: String? = null,
     val currentUserId: String? = null,
+    val currentUserName: String? = null,
     val currentUserImage: String? = null,
     val selectedUser: BrowseUser? = null
 )

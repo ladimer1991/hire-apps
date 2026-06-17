@@ -37,6 +37,7 @@ data class Conversation(
 fun HomePage(
     selectedTab: Int = 0,
     currentUserId: String? = null,
+    currentUserName: String? = null,
     currentUserImage: String? = null,
     onTabChanged: (Int) -> Unit = {},
     onBackClick: () -> Unit = {},
@@ -161,7 +162,9 @@ fun HomePage(
                 )
                 1 -> MessagesTab(viewModel = messagesViewModel, onConversationClick = onConversationClick)
                 2 -> CategoriesTab()
-                3 -> ProfileTab()
+                3 -> {
+                    ProfileTab(userName = currentUserName ?: "User", userImage = currentUserImage)
+                }
             }
         }
     }
@@ -552,13 +555,105 @@ fun CategoriesTab() {
 }
 
 @Composable
-fun ProfileTab() {
+fun ProfileTab(userName: String, userImage: String?) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.Top
     ) {
-        Text("Profile", style = MaterialTheme.typography.headlineMedium)
-        Text("Your profile and settings will appear here.", color = Color.Gray)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // Circular Profile Image
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .background(Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
+                if (userImage != null) {
+                    val bitmap = remember(userImage) {
+                        decodeBase64ToBitmap(userImage)
+                    }
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text("👤", fontSize = 40.sp)
+                    }
+                } else {
+                    Text("👤", fontSize = 40.sp)
+                }
+            }
+
+            // User Info and Edit Button
+            Column {
+                Text(
+                    text = userName,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Button(
+                    onClick = { /* Edit profile action */ },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF)),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text("Edit Profile", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        // Additional profile options could go here
+        Text(
+            text = "Account Settings",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // Placeholder for more settings
+        repeat(3) { index ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .clickable { },
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = when(index) {
+                            0 -> "Notifications"
+                            1 -> "Privacy & Security"
+                            else -> "Help & Support"
+                        },
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text("›", fontSize = 24.sp, color = Color.Gray)
+                }
+            }
+        }
     }
 }
