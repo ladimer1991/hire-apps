@@ -141,6 +141,24 @@ fun App(locationPlatform: LocationPlatform? = null) {
                             currentScreen = Screen.USER_DETAILS,
                             selectedUser = user
                         )
+                    },
+                    onEditProfileClick = {
+                        appState.value = appState.value.copy(currentScreen = Screen.EDIT_PROFILE)
+                    }
+                )
+            }
+            Screen.EDIT_PROFILE -> {
+                EditProfilePage(
+                    onBack = {
+                        coroutineScope.launch {
+                            val user = apiService.getCurrentUser().getOrNull()
+                            appState.value = appState.value.copy(
+                                currentScreen = Screen.BROWSE,
+                                selectedHomePageTab = 3,
+                                currentUserName = user?.username,
+                                currentUserImage = user?.images?.firstOrNull()
+                            )
+                        }
                     }
                 )
             }

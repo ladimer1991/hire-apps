@@ -9,6 +9,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.request.header
 import io.ktor.http.ContentType
@@ -90,6 +91,13 @@ class AuthApiService(
 
     suspend fun getCurrentUser(): Result<RegisterRequest> = runCatching {
         httpClient.get("$baseUrl/api/users/me").body()
+    }
+
+    suspend fun updateProfile(request: RegisterRequest): Result<RegisterRequest> = runCatching {
+        httpClient.put("$baseUrl/api/users/profile") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
     }
 
     suspend fun sendMessage(message: Message): Result<Message> = runCatching {

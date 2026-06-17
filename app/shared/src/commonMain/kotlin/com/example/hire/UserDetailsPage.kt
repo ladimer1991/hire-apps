@@ -35,7 +35,7 @@ fun UserDetailsPage(
     val apiService = remember { AuthApiService() }
 
     // State for local reviews (optimistic UI update)
-    var localReviews by remember { mutableStateOf(user.reviews ?: emptyList()) }
+    var localReviews by remember { mutableStateOf(user.reviews) }
     var rating by remember { mutableStateOf(0) }
     var reviewText by remember { mutableStateOf("") }
     var isSubmitting by remember { mutableStateOf(false) }
@@ -49,7 +49,9 @@ fun UserDetailsPage(
                         Text("← Back", color = Color(0xFF007AFF), fontWeight = FontWeight.Bold)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
+                )
             )
         }
     ) { paddingValues ->
@@ -148,7 +150,7 @@ fun UserDetailsPage(
                     }
                 }
                 
-                user.profession?.let {
+                user.profession.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.titleMedium,

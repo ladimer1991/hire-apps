@@ -34,7 +34,9 @@ fun RegistrationPage(
                         Text("Back", color = Color(0xFF007AFF))
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
+                )
             )
         }
     ) { paddingValues ->

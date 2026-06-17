@@ -42,6 +42,7 @@ fun HomePage(
     onTabChanged: (Int) -> Unit = {},
     onBackClick: () -> Unit = {},
     onUserClick: (BrowseUser) -> Unit = {},
+    onEditProfileClick: () -> Unit = {},
     onConversationClick: (userId: String, userName: String) -> Unit = { _, _ -> },
     browseViewModel: BrowseViewModel = viewModel { BrowseViewModel() },
     messagesViewModel: MessagesViewModel = viewModel { MessagesViewModel() }
@@ -163,7 +164,7 @@ fun HomePage(
                 1 -> MessagesTab(viewModel = messagesViewModel, onConversationClick = onConversationClick)
                 2 -> CategoriesTab()
                 3 -> {
-                    ProfileTab(userName = currentUserName ?: "User", userImage = currentUserImage)
+                    ProfileTab(userName = currentUserName ?: "User", userImage = currentUserImage, onEditProfileClick = onEditProfileClick)
                 }
             }
         }
@@ -555,7 +556,7 @@ fun CategoriesTab() {
 }
 
 @Composable
-fun ProfileTab(userName: String, userImage: String?) {
+fun ProfileTab(userName: String, userImage: String?, onEditProfileClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -607,7 +608,7 @@ fun ProfileTab(userName: String, userImage: String?) {
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Button(
-                    onClick = { /* Edit profile action */ },
+                    onClick = onEditProfileClick,
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF)),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
