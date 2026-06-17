@@ -65,10 +65,16 @@ fun HomePage(
                             .fillMaxWidth()
                             .padding(8.dp),
                         placeholder = { Text("Search services...") },
-                        leadingIcon = { Text("🔍") },
+                        leadingIcon = {
+                            IconButton(onClick = { browseViewModel.triggerSearch() }) {
+                                Text("🔍")
+                            }
+                        },
                         trailingIcon = {
                             if (browseViewModel.searchQuery.value.isNotEmpty()) {
-                                IconButton(onClick = { browseViewModel.updateSearchQuery("") }) {
+                                IconButton(onClick = { 
+                                    browseViewModel.updateSearchQuery("")
+                                }) {
                                     Text("✕")
                                 }
                             }
@@ -220,7 +226,7 @@ fun BrowseTab(
 
     PullToRefreshBox(
         isRefreshing = isLoading,
-        onRefresh = { viewModel.loadUsers(forceRefresh = true) },
+        onRefresh = { viewModel.triggerRefresh() },
         modifier = Modifier.fillMaxSize()
     ) {
         if (users.isEmpty() && !isLoading) {

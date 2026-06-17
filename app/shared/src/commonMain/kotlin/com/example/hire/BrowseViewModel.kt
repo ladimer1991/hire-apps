@@ -9,11 +9,16 @@ import kotlinx.coroutines.launch
 class BrowseViewModel(
     private val apiService: AuthApiService = AuthApiService()
 ) : ViewModel() {
-    private val _users = mutableStateOf<List<BrowseUser>>(emptyList())
-    val users: State<List<BrowseUser>> = _users
+    private val _displayedUsers = mutableStateOf<List<BrowseUser>>(emptyList())
+    val users: State<List<BrowseUser>> = _displayedUsers
 
-    private val _isLoading = mutableStateOf(false)
-    val isLoading: State<Boolean> = _isLoading
+    private var _internalUsers: List<BrowseUser> = emptyList()
+
+    private val _isInternalLoading = mutableStateOf(false)
+    private val _isSearchTriggered = mutableStateOf(false)
+
+    private val _isLoadingVisible = mutableStateOf(false)
+    val isLoading: State<Boolean> = _isLoadingVisible
 
     private val _errorMessage = mutableStateOf<String?>(null)
     val errorMessage: State<String?> = _errorMessage
@@ -22,22 +27,43 @@ class BrowseViewModel(
     private val _searchQuery = mutableStateOf("")
     val searchQuery: State<String> = _searchQuery
 
+    private var searchJob: kotlinx.coroutines.Job? = null
+
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
+    }
+
+    fun triggerSearch() {
+        _isSearchTriggered.value = true
+        _isLoadingVisible.value = true
+        loadUsers(forceRefresh = true)
+    }
+
+    fun triggerRefresh() {
+        _isSearchTriggered.value = true
+        _isLoadingVisible.value = true
         loadUsers(forceRefresh = true)
     }
 
     fun loadUsers(forceRefresh: Boolean = false) {
-        if (hasLoadedOnce && !forceRefresh && _searchQuery.value.isEmpty()) return
+        if (hasLoadedOnce && !forceRefresh) return
 
-        viewModelScope.launch {
-            _isLoading.value = true
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            val currentQuery = _searchQuery.value
+            _isInternalLoading.value = true
+            
+            // Show loading if we triggered a search OR if it's the very first load
+            if (_isSearchTriggered.value || !hasLoadedOnce) {
+                _isLoadingVisible.value = true
+            }
+
             val meResult = apiService.getCurrentUser().getOrNull()
             val myId = meResult?.id ?: meResult?.email ?: ""
             
-            val query = _searchQuery.value.takeIf { it.isNotBlank() }
-            apiService.getAllUsers(query).onSuccess { fetchedUsers ->
-                _users.value = fetchedUsers.filter { (it.id ?: it.email) != myId }.mapIndexed { index, user ->
+            val queryParam = currentQuery.takeIf { it.isNotBlank() }
+            apiService.getAllUsers(queryParam).onSuccess { fetchedUsers ->
+                _internalUsers = fetchedUsers.filter { (it.id ?: it.email) != myId }.mapIndexed { index, user ->
                     BrowseUser(
                         id = user.id ?: user.email,
                         name = user.username,
@@ -49,11 +75,26 @@ class BrowseViewModel(
                         reviews = user.reviews
                     )
                 }
+
+                // If search was triggered, or it's the initial load, update displayed users
+                if (_isSearchTriggered.value || !hasLoadedOnce) {
+                    _displayedUsers.value = _internalUsers
+                    _isSearchTriggered.value = false
+                    _isLoadingVisible.value = false
+                }
+
                 hasLoadedOnce = true
             }.onFailure { error ->
-                _errorMessage.value = error.message
+                if (error !is kotlinx.coroutines.CancellationException) {
+                    _errorMessage.value = error.message
+                    _isLoadingVisible.value = false
+                    _isSearchTriggered.value = false
+                }
             }
-            _isLoading.value = false
+            _isInternalLoading.value = false
+            if (!_isSearchTriggered.value) {
+                _isLoadingVisible.value = false
+            }
         }
     }
     
