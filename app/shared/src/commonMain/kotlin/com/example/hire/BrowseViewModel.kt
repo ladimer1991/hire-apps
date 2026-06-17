@@ -4,6 +4,9 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class BrowseViewModel(
@@ -27,13 +30,24 @@ class BrowseViewModel(
     private val _searchQuery = mutableStateOf("")
     val searchQuery: State<String> = _searchQuery
 
-    private var searchJob: kotlinx.coroutines.Job? = null
+    private var searchJob: Job? = null
+    private var prefetchJob: Job? = null
+    private val prefetchedUsersByQuery = mutableMapOf<String, List<BrowseUser>>()
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
+        prefetchUsers(query)
     }
 
     fun triggerSearch() {
+        _errorMessage.value = null
+        prefetchedUsersByQuery[cacheKey(_searchQuery.value)]?.let { cachedUsers ->
+            // Keep existing click-to-search behavior, but instantly show prefetched data if available.
+            _internalUsers = cachedUsers
+            _displayedUsers.value = cachedUsers
+            hasLoadedOnce = true
+        }
+
         _isSearchTriggered.value = true
         _isLoadingVisible.value = true
         loadUsers(forceRefresh = true)
@@ -58,23 +72,9 @@ class BrowseViewModel(
                 _isLoadingVisible.value = true
             }
 
-            val meResult = apiService.getCurrentUser().getOrNull()
-            val myId = meResult?.id ?: meResult?.email ?: ""
-            
-            val queryParam = currentQuery.takeIf { it.isNotBlank() }
-            apiService.getAllUsers(queryParam).onSuccess { fetchedUsers ->
-                _internalUsers = fetchedUsers.filter { (it.id ?: it.email) != myId }.mapIndexed { index, user ->
-                    BrowseUser(
-                        id = user.id ?: user.email,
-                        name = user.username,
-                        profession = user.providedService ?: "Professional",
-                        hourlyRate = user.hourlyRate,
-                        description = user.description,
-                        color = defaultColors[index % defaultColors.size],
-                        base64Images = user.images,
-                        reviews = user.reviews
-                    )
-                }
+            fetchBrowseUsers(currentQuery).onSuccess { fetchedUsers ->
+                _internalUsers = fetchedUsers
+                prefetchedUsersByQuery[cacheKey(currentQuery)] = fetchedUsers
 
                 // If search was triggered, or it's the initial load, update displayed users
                 if (_isSearchTriggered.value || !hasLoadedOnce) {
@@ -85,7 +85,7 @@ class BrowseViewModel(
 
                 hasLoadedOnce = true
             }.onFailure { error ->
-                if (error !is kotlinx.coroutines.CancellationException) {
+                if (error !is CancellationException) {
                     _errorMessage.value = error.message
                     _isLoadingVisible.value = false
                     _isSearchTriggered.value = false
@@ -97,7 +97,46 @@ class BrowseViewModel(
             }
         }
     }
-    
+
+    private fun prefetchUsers(query: String) {
+        val queryKey = cacheKey(query)
+        if (prefetchedUsersByQuery.containsKey(queryKey)) return
+
+        prefetchJob?.cancel()
+        prefetchJob = viewModelScope.launch {
+            // Debounce typing to avoid firing a request per keystroke.
+            delay(250)
+            fetchBrowseUsers(query).onSuccess { fetchedUsers ->
+                prefetchedUsersByQuery[queryKey] = fetchedUsers
+            }
+        }
+    }
+
+    private suspend fun fetchBrowseUsers(query: String): Result<List<BrowseUser>> {
+        val meResult = apiService.getCurrentUser().getOrNull()
+        val myId = meResult?.id ?: meResult?.email ?: ""
+
+        val queryParam = query.takeIf { it.isNotBlank() }
+        return apiService.getAllUsers(queryParam).map { fetchedUsers ->
+            fetchedUsers
+                .filter { (it.id ?: it.email) != myId }
+                .mapIndexed { index, user ->
+                    BrowseUser(
+                        id = user.id ?: user.email,
+                        name = user.username,
+                        profession = user.providedService ?: "Professional",
+                        hourlyRate = user.hourlyRate,
+                        description = user.description,
+                        color = defaultColors[index % defaultColors.size],
+                        base64Images = user.images,
+                        reviews = user.reviews
+                    )
+                }
+        }
+    }
+
+    private fun cacheKey(query: String): String = query.trim()
+
     fun loadMore() {
         // Pagination logic would go here
     }
