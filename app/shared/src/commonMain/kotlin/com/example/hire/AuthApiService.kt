@@ -10,11 +10,13 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
+import io.ktor.client.request.parameter
 import io.ktor.client.request.setBody
 import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 
 class AuthApiService(
@@ -35,8 +37,8 @@ class AuthApiService(
                     // Filter out large image data from logs using regex
                     // (?s) allows . to match newlines
                     val sanitized = if (message.contains("\"images\"") || message.contains("images=")) {
-                        message.replace(Regex("(?s)\"images\"\\s*:\\s*\\[.*?\\]"), "\"images\": []")
-                               .replace(Regex("(?s)images=\\[.*?\\]"), "images=[]")
+                        message.replace(Regex("""(?s)"images"\s*:\s*\[.*?]"""), "\"images\": []")
+                               .replace(Regex("""(?s)images=\[.*?]"""), "images=[]")
                     } else {
                         message
                     }
@@ -53,7 +55,7 @@ class AuthApiService(
         install(ResponseObserver) {
             onResponse { response ->
                 val body = response.bodyAsText()
-                val sanitizedBody = body.replace(Regex("(?s)\"images\"\\s*:\\s*\\[.*?\\]"), "\"images\": []")
+                val sanitizedBody = body.replace(Regex("""(?s)"images"\s*:\s*\[.*?]"""), "\"images\": []")
                 println("HTTP_LOG: RESPONSE_BODY: $sanitizedBody")
             }
         }
@@ -64,63 +66,87 @@ class AuthApiService(
         }
     }
 
-    suspend fun register(request: RegisterRequest): Result<AuthResponse> = runCatching {
-        val requestLog = request.copy(images = emptyList())
-        println("HTTP_LOG: REQUEST_BODY: $requestLog")
-        val response: AuthResponse = httpClient.post("$baseUrl/api/users/register") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
-        }.body()
-        sessionManager.saveToken(response.token)
-        response
+    private suspend fun <T> apiCall(
+        source: String,
+        block: suspend () -> T
+    ): Result<T> {
+        return try {
+            Result.success(block())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            logApiError(source, e)
+            Result.failure(e)
+        }
     }
 
-    suspend fun login(request: LoginRequest): Result<AuthResponse> = runCatching {
-        val response: AuthResponse = httpClient.post("$baseUrl/api/users/login") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
-        }.body()
-        sessionManager.saveToken(response.token)
-        response
-    }
-    
-    suspend fun getAllUsers(searchQuery: String? = null): Result<List<RegisterRequest>> = runCatching {
-        val url = if (searchQuery != null) "$baseUrl/api/users?q=$searchQuery" else "$baseUrl/api/users"
-        httpClient.get(url).body()
-    }
+    suspend fun register(request: RegisterRequest): Result<AuthResponse> =
+        apiCall("register") {
+            val requestLog = request.copy(images = emptyList())
+            println("HTTP_LOG: REQUEST_BODY: $requestLog")
+            val response: AuthResponse = httpClient.post("$baseUrl/api/users/register") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }.body()
+            sessionManager.saveToken(response.token)
+            response
+        }
 
-    suspend fun getCurrentUser(): Result<RegisterRequest> = runCatching {
-        httpClient.get("$baseUrl/api/users/me").body()
-    }
+    suspend fun login(request: LoginRequest): Result<AuthResponse> =
+        apiCall("login") {
+            val response: AuthResponse = httpClient.post("$baseUrl/api/users/login") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }.body()
+            sessionManager.saveToken(response.token)
+            response
+        }
 
-    suspend fun updateProfile(request: RegisterRequest): Result<RegisterRequest> = runCatching {
-        httpClient.put("$baseUrl/api/users/profile") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
-        }.body()
-    }
+    suspend fun getAllUsers(searchQuery: String? = null): Result<List<RegisterRequest>> =
+        apiCall("getAllUsers") {
+            httpClient.get("$baseUrl/api/users") {
+                searchQuery?.let { parameter("q", it) }
+            }.body<List<RegisterRequest>>()
+        }
 
-    suspend fun sendMessage(message: Message): Result<Message> = runCatching {
-        httpClient.post("$baseUrl/api/messages/send") {
-            contentType(ContentType.Application.Json)
-            setBody(message)
-        }.body()
-    }
+    suspend fun getCurrentUser(): Result<RegisterRequest> =
+        apiCall("getCurrentUser") {
+            httpClient.get("$baseUrl/api/users/me").body<RegisterRequest>()
+        }
 
-    suspend fun getConversation(otherUserId: String): Result<List<Message>> = runCatching {
-        httpClient.get("$baseUrl/api/messages/conversation/$otherUserId").body()
-    }
+    suspend fun updateProfile(request: RegisterRequest): Result<RegisterRequest> =
+        apiCall("updateProfile") {
+            httpClient.put("$baseUrl/api/users/profile") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }.body<RegisterRequest>()
+        }
 
-    suspend fun addReview(targetUserId: String, content: String, rating: Double): Result<RegisterRequest> = runCatching {
-        httpClient.post("$baseUrl/api/users/$targetUserId/reviews") {
-            contentType(ContentType.Application.Json)
-            setBody(Review(content = content, rating = rating))
-        }.body()
-    }
+    suspend fun sendMessage(message: Message): Result<Message> =
+        apiCall("sendMessage") {
+            httpClient.post("$baseUrl/api/messages/send") {
+                contentType(ContentType.Application.Json)
+                setBody(message)
+            }.body<Message>()
+        }
 
-    suspend fun getHistory(): Result<List<Message>> = runCatching {
-        httpClient.get("$baseUrl/api/messages/history").body()
-    }
+    suspend fun getConversation(otherUserId: String): Result<List<Message>> =
+        apiCall("getConversation") {
+            httpClient.get("$baseUrl/api/messages/conversation/$otherUserId").body<List<Message>>()
+        }
+
+    suspend fun addReview(targetUserId: String, content: String, rating: Double): Result<RegisterRequest> =
+        apiCall("addReview") {
+            httpClient.post("$baseUrl/api/users/$targetUserId/reviews") {
+                contentType(ContentType.Application.Json)
+                setBody(Review(content = content, rating = rating))
+            }.body<RegisterRequest>()
+        }
+
+    suspend fun getHistory(): Result<List<Message>> =
+        apiCall("getHistory") {
+            httpClient.get("$baseUrl/api/messages/history").body<List<Message>>()
+        }
 
     fun close() {
         httpClient.close()

@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,7 +22,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 
 data class Conversation(
     val id: String,
@@ -45,10 +49,17 @@ fun HomePage(
     onEditProfileClick: () -> Unit = {},
     onConversationClick: (userId: String, userName: String) -> Unit = { _, _ -> },
     browseViewModel: BrowseViewModel = viewModel { BrowseViewModel() },
-    messagesViewModel: MessagesViewModel = viewModel { MessagesViewModel() }
+    messagesViewModel: MessagesViewModel = viewModel { MessagesViewModel() },
+    categoriesViewModel: CategoriesViewModel = viewModel { CategoriesViewModel() }
 ) {
     var currentTab by remember { mutableStateOf(selectedTab) }
     val tabs = listOf("Browse", "Messages", "Categories", "Profile")
+
+    LaunchedEffect(browseViewModel, messagesViewModel, categoriesViewModel) {
+        browseViewModel.loadUsersAwait()
+        messagesViewModel.loadConversations()
+        categoriesViewModel.loadCategories()
+    }
 
     Scaffold(
         topBar = {
@@ -168,7 +179,10 @@ fun HomePage(
                     onConversationClick = onConversationClick
                 )
                 1 -> MessagesTab(viewModel = messagesViewModel, onConversationClick = onConversationClick)
-                2 -> CategoriesTab()
+                2 -> CategoriesTab(
+                    viewModel = categoriesViewModel,
+                    onUserClick = onUserClick
+                )
                 3 -> {
                     ProfileTab(userName = currentUserName ?: "User", userImage = currentUserImage, onEditProfileClick = onEditProfileClick)
                 }
@@ -206,6 +220,12 @@ fun BrowseTab(
     val errorMessage by viewModel.errorMessage
     val listState = rememberLazyListState()
 
+    ApiErrorDialogHost(
+        errorMessage = errorMessage,
+        title = "Browse failed",
+        onDismissError = { viewModel.clearError() }
+    )
+
     LaunchedEffect(Unit) {
         viewModel.loadUsers()
     }
@@ -230,11 +250,7 @@ fun BrowseTab(
         modifier = Modifier.fillMaxSize()
     ) {
         if (users.isEmpty() && !isLoading) {
-            if (errorMessage != null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error loading users: $errorMessage", color = Color.Red)
-                }
-            } else {
+            if (errorMessage == null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("No users found")
                 }
@@ -550,14 +566,313 @@ fun ConversationCard(
 }
 
 @Composable
-fun CategoriesTab() {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+fun CategoriesTab(
+    viewModel: CategoriesViewModel,
+    onUserClick: (BrowseUser) -> Unit
+) {
+    val tutors by viewModel.tutors
+    val handymen by viewModel.handymen
+    val petSitters by viewModel.petSitters
+
+    val tutorsLoading by viewModel.tutorsLoading
+    val handymenLoading by viewModel.handymenLoading
+    val petSittersLoading by viewModel.petSittersLoading
+
+    val tutorsError by viewModel.tutorsError
+    val handymenError by viewModel.handymenError
+    val petSittersError by viewModel.petSittersError
+
+    ApiErrorDialogHost(
+        errorMessage = tutorsError,
+        title = "Tutors failed",
+        onDismissError = { viewModel.clearTutorsError() }
+    )
+    ApiErrorDialogHost(
+        errorMessage = handymenError,
+        title = "Handymen failed",
+        onDismissError = { viewModel.clearHandymenError() }
+    )
+    ApiErrorDialogHost(
+        errorMessage = petSittersError,
+        title = "Pet sitters failed",
+        onDismissError = { viewModel.clearPetSittersError() }
+    )
+
+    LaunchedEffect(Unit) {
+        viewModel.loadCategories()
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        contentPadding = PaddingValues(bottom = 16.dp)
     ) {
-        Text("Categories", style = MaterialTheme.typography.headlineMedium)
-        Text("Browse jobs by industry or skill.", color = Color.Gray)
+        item {
+            CategorySection(
+                title = "Tutors",
+                users = tutors,
+                isLoading = tutorsLoading,
+                errorMessage = tutorsError,
+                onUserClick = onUserClick
+            )
+        }
+        item {
+            CategorySection(
+                title = "Handymen",
+                users = handymen,
+                isLoading = handymenLoading,
+                errorMessage = handymenError,
+                onUserClick = onUserClick
+            )
+        }
+        item {
+            CategorySection(
+                title = "Pet Sitters",
+                users = petSitters,
+                isLoading = petSittersLoading,
+                errorMessage = petSittersError,
+                onUserClick = onUserClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategorySection(
+    title: String,
+    users: List<BrowseUser>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onUserClick: (BrowseUser) -> Unit
+) {
+    Column {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            }
+            errorMessage != null && users.isEmpty() -> {
+                Text(
+                    text = "Error loading $title",
+                    color = Color.Red,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+            users.isEmpty() -> {
+                Text(
+                    text = "No users found",
+                    color = Color.Gray,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+            else -> {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp)
+                ) {
+                    items(users) { user ->
+                        CategoryUserCard(user = user, onUserClick = onUserClick)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryUserCard(
+    user: BrowseUser,
+    onUserClick: (BrowseUser) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(170.dp)
+            .clickable { onUserClick(user) },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .background(user.color),
+                contentAlignment = Alignment.Center
+            ) {
+                val firstImage = user.base64Images.firstOrNull()
+                if (firstImage != null) {
+                    val bitmap = remember(firstImage) {
+                        decodeBase64ToBitmap(firstImage)
+                    }
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap,
+                            contentDescription = user.name,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = user.name.take(1).uppercase(),
+                            style = MaterialTheme.typography.displaySmall,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                } else {
+                    Text(
+                        text = user.name.take(1).uppercase(),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = user.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = user.hourlyRate?.let { "$${it}/hr" } ?: "-",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF1B5E20)
+                )
+            }
+        }
+    }
+}
+
+class CategoriesViewModel(
+    private val apiService: AuthApiService = AuthApiService()
+) : ViewModel() {
+    private val _tutors = mutableStateOf<List<BrowseUser>>(emptyList())
+    val tutors: State<List<BrowseUser>> = _tutors
+
+    private val _handymen = mutableStateOf<List<BrowseUser>>(emptyList())
+    val handymen: State<List<BrowseUser>> = _handymen
+
+    private val _petSitters = mutableStateOf<List<BrowseUser>>(emptyList())
+    val petSitters: State<List<BrowseUser>> = _petSitters
+
+    private val _tutorsLoading = mutableStateOf(false)
+    val tutorsLoading: State<Boolean> = _tutorsLoading
+
+    private val _handymenLoading = mutableStateOf(false)
+    val handymenLoading: State<Boolean> = _handymenLoading
+
+    private val _petSittersLoading = mutableStateOf(false)
+    val petSittersLoading: State<Boolean> = _petSittersLoading
+
+    private val _tutorsError = mutableStateOf<String?>(null)
+    val tutorsError: State<String?> = _tutorsError
+
+    private val _handymenError = mutableStateOf<String?>(null)
+    val handymenError: State<String?> = _handymenError
+
+    private val _petSittersError = mutableStateOf<String?>(null)
+    val petSittersError: State<String?> = _petSittersError
+
+    private var hasLoadedOnce = false
+
+    fun loadCategories(forceRefresh: Boolean = false) {
+        if (hasLoadedOnce && !forceRefresh) return
+
+        loadCategory(
+            searchWord = "tutor",
+            listSetter = { _tutors.value = it },
+            loadingSetter = { _tutorsLoading.value = it },
+            errorSetter = { _tutorsError.value = it }
+        )
+        loadCategory(
+            searchWord = "Handyman",
+            listSetter = { _handymen.value = it },
+            loadingSetter = { _handymenLoading.value = it },
+            errorSetter = { _handymenError.value = it }
+        )
+        loadCategory(
+            searchWord = "sitter",
+            listSetter = { _petSitters.value = it },
+            loadingSetter = { _petSittersLoading.value = it },
+            errorSetter = { _petSittersError.value = it },
+            onComplete = { hasLoadedOnce = true }
+        )
+    }
+
+    fun clearTutorsError() {
+        _tutorsError.value = null
+    }
+
+    fun clearHandymenError() {
+        _handymenError.value = null
+    }
+
+    fun clearPetSittersError() {
+        _petSittersError.value = null
+    }
+
+    private fun loadCategory(
+        searchWord: String,
+        listSetter: (List<BrowseUser>) -> Unit,
+        loadingSetter: (Boolean) -> Unit,
+        errorSetter: (String?) -> Unit,
+        onComplete: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            loadingSetter(true)
+            errorSetter(null)
+
+            apiService.getAllUsers(searchWord).onSuccess { fetchedUsers ->
+                val mappedUsers = fetchedUsers.mapIndexed { index, user ->
+                    BrowseUser(
+                        id = user.id ?: user.email,
+                        name = user.username,
+                        profession = user.providedService ?: "Professional",
+                        hourlyRate = user.hourlyRate,
+                        description = user.description,
+                        color = defaultColors[index % defaultColors.size],
+                        base64Images = user.images,
+                        reviews = user.reviews
+                    )
+                }
+                listSetter(mappedUsers)
+            }.onFailure { error ->
+                logApiError("categories:$searchWord", error)
+                errorSetter(error.toFriendlyApiMessage("Failed to load $searchWord users."))
+            }
+
+            loadingSetter(false)
+            onComplete()
+        }
     }
 }
 

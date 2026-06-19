@@ -240,6 +240,10 @@ class RegistrationViewModel(
         }
     }
 
+    fun clearError() {
+        _errorMessage.value = null
+    }
+
     private fun clearForm() {
         _description.value = ""
         _providedService.value = ""

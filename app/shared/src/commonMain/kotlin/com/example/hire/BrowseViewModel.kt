@@ -39,6 +39,10 @@ class BrowseViewModel(
         prefetchUsers(query)
     }
 
+    fun clearError() {
+        _errorMessage.value = null
+    }
+
     fun triggerSearch() {
         _errorMessage.value = null
         prefetchedUsersByQuery[cacheKey(_searchQuery.value)]?.let { cachedUsers ->
@@ -60,10 +64,17 @@ class BrowseViewModel(
     }
 
     fun loadUsers(forceRefresh: Boolean = false) {
+        viewModelScope.launch {
+            loadUsersAwait(forceRefresh)
+        }
+    }
+
+    suspend fun loadUsersAwait(forceRefresh: Boolean = false) {
         if (hasLoadedOnce && !forceRefresh) return
 
         searchJob?.cancel()
-        searchJob = viewModelScope.launch {
+        searchJob = null
+        try {
             val currentQuery = _searchQuery.value
             _isInternalLoading.value = true
             
@@ -94,6 +105,10 @@ class BrowseViewModel(
             _isInternalLoading.value = false
             if (!_isSearchTriggered.value) {
                 _isLoadingVisible.value = false
+            }
+        } finally {
+            if (searchJob != null && searchJob?.isActive == false) {
+                searchJob = null
             }
         }
     }

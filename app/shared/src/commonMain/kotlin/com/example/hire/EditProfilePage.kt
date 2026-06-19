@@ -167,10 +167,11 @@ fun EditProfilePage(
                     }
                 }
 
-                // Status Messages
-                if (viewModel.errorMessage.value != null) {
-                    Text(viewModel.errorMessage.value!!, color = Color.Red, fontSize = 14.sp)
-                }
+                ApiErrorDialogHost(
+                    errorMessage = viewModel.errorMessage.value,
+                    title = "Profile update failed",
+                    onDismissError = { viewModel.clearError() }
+                )
                 if (viewModel.successMessage.value != null) {
                     Text(viewModel.successMessage.value!!, color = Color(0xFF4CAF50), fontSize = 14.sp)
                 }

@@ -46,9 +46,11 @@ fun LoginPage(
                 visualTransformation = PasswordVisualTransformation()
             )
 
-            if (viewModel.errorMessage.value != null) {
-                Text(text = viewModel.errorMessage.value!!, color = MaterialTheme.colorScheme.error)
-            }
+            ApiErrorDialogHost(
+                errorMessage = viewModel.errorMessage.value,
+                title = "Login failed",
+                onDismissError = { viewModel.clearError() }
+            )
 
             if (viewModel.isLoading.value) {
                 CircularProgressIndicator()

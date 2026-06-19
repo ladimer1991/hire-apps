@@ -28,11 +28,20 @@ fun ChatDetailScreen(
     var inputText by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
     var actualUserId by remember { mutableStateOf(currentUserId) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    ApiErrorDialogHost(
+        errorMessage = errorMessage,
+        title = "Chat failed",
+        onDismissError = { errorMessage = null }
+    )
 
     fun loadMessages() {
         coroutineScope.launch {
             apiService.getConversation(chatPartnerId).onSuccess {
                 messages = it
+            }.onFailure { error ->
+                errorMessage = error.toFriendlyApiMessage("Failed to load messages.")
             }
             isLoading = false
         }
@@ -42,6 +51,8 @@ fun ChatDetailScreen(
         if (actualUserId.isBlank()) {
             apiService.getCurrentUser().onSuccess { me ->
                 actualUserId = me.id ?: me.email
+            }.onFailure { error ->
+                errorMessage = error.toFriendlyApiMessage("Failed to load your user profile.")
             }
         }
         loadMessages()
@@ -83,6 +94,8 @@ fun ChatDetailScreen(
                                 apiService.sendMessage(msg).onSuccess { sentMsg ->
                                     messages = messages + sentMsg
                                     inputText = ""
+                                }.onFailure { error ->
+                                    errorMessage = error.toFriendlyApiMessage("Failed to send message.")
                                 }
                             }
                         }

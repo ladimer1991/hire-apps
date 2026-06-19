@@ -3,9 +3,11 @@ package com.example.hire
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.launch
 
@@ -17,6 +19,13 @@ fun App(locationPlatform: LocationPlatform? = null) {
         val sessionManager = remember { SessionManager() }
         val apiService = remember { AuthApiService(sessionManager = sessionManager) }
         val coroutineScope = rememberCoroutineScope()
+        val appErrorMessage = remember { mutableStateOf<String?>(null) }
+
+        ApiErrorDialogHost(
+            errorMessage = appErrorMessage.value,
+            title = "Network error",
+            onDismissError = { appErrorMessage.value = null }
+        )
 
         LaunchedEffect(Unit) {
             locationPlatform?.startLocationUpdates()
@@ -30,7 +39,8 @@ fun App(locationPlatform: LocationPlatform? = null) {
                         currentUserName = user.username,
                         currentUserImage = user.images.firstOrNull()
                     )
-                }.onFailure {
+                }.onFailure { error ->
+                    appErrorMessage.value = error.toFriendlyApiMessage("Unable to restore your session.")
                     // Token expired or invalid, clear it
                     sessionManager.clearSession()
                 }
@@ -109,7 +119,8 @@ fun App(locationPlatform: LocationPlatform? = null) {
                                     currentUserName = user.username,
                                     currentUserImage = user.images.firstOrNull()
                                 )
-                            }.onFailure {
+                            }.onFailure { error ->
+                                appErrorMessage.value = error.toFriendlyApiMessage("Logged in, but we could not load your profile.")
                                 appState.value = appState.value.copy(currentScreen = Screen.BROWSE)
                             }
                         }

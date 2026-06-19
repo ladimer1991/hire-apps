@@ -38,6 +38,10 @@ class LoginViewModel(
         _errorMessage.value = null
     }
 
+    fun clearError() {
+        _errorMessage.value = null
+    }
+
     fun login(onSuccess: (String) -> Unit) {
         if (email.value.isBlank() || password.value.isBlank()) {
             _errorMessage.value = "Email and password cannot be empty"

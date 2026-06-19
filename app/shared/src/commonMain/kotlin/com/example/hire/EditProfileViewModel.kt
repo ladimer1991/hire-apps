@@ -128,6 +128,10 @@ class EditProfileViewModel(
         }
     }
 
+    fun clearError() {
+        _errorMessage.value = null
+    }
+
     override fun onCleared() {
         super.onCleared()
         authApiService.close()

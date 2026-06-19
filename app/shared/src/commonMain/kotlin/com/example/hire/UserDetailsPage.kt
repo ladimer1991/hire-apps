@@ -33,6 +33,13 @@ fun UserDetailsPage(
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { pageCount })
     val coroutineScope = rememberCoroutineScope()
     val apiService = remember { AuthApiService() }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    ApiErrorDialogHost(
+        errorMessage = errorMessage,
+        title = "Review failed",
+        onDismissError = { errorMessage = null }
+    )
 
     // State for local reviews (optimistic UI update)
     var localReviews by remember { mutableStateOf(user.reviews) }
@@ -286,6 +293,8 @@ fun UserDetailsPage(
                                     localReviews = updatedUser.reviews
                                     rating = 0
                                     reviewText = ""
+                                }.onFailure { error ->
+                                    errorMessage = error.toFriendlyApiMessage("Failed to submit review.")
                                 }
                             isSubmitting = false
                         }
