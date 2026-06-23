@@ -40,7 +40,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                         currentUserImage = user.images.firstOrNull()
                     )
                 }.onFailure { error ->
-                    appErrorMessage.value = error.toFriendlyApiMessage("Unable to restore your session.")
+                    //appErrorMessage.value = error.toFriendlyApiMessage("Unable to restore your session.") we don't wanna show this either.
                     // Token expired or invalid, clear it
                     sessionManager.clearSession()
                 }

@@ -10,19 +10,25 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
-import io.ktor.client.request.parameter
 import io.ktor.client.request.setBody
 import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 
 class AuthApiService(
     private val baseUrl: String = "https://user-service-71791662068.us-central1.run.app",
     private val sessionManager: SessionManager = SessionManager()
 ) {
+    companion object {
+        private val usersCacheMutex = Mutex()
+        private var usersCache: List<RegisterRequest>? = null
+    }
+
     private val httpClient = HttpClient {
         install(ContentNegotiation) {
             json(Json {
@@ -89,6 +95,7 @@ class AuthApiService(
                 setBody(request)
             }.body()
             sessionManager.saveToken(response.token)
+            invalidateUsersCache()
             response
         }
 
@@ -99,14 +106,25 @@ class AuthApiService(
                 setBody(request)
             }.body()
             sessionManager.saveToken(response.token)
+            invalidateUsersCache()
             response
         }
 
     suspend fun getAllUsers(searchQuery: String? = null): Result<List<RegisterRequest>> =
         apiCall("getAllUsers") {
-            httpClient.get("$baseUrl/api/users") {
-                searchQuery?.let { parameter("q", it) }
-            }.body<List<RegisterRequest>>()
+            usersCacheMutex.withLock {
+                if (usersCache == null) {
+                    println("\n========================================")
+                    println("CACHE_LOG: MISS /api/users (query=${searchQuery ?: "<none>"})")
+                    println("========================================\n")
+                    usersCache = httpClient.get("$baseUrl/api/users").body<List<RegisterRequest>>()
+                } else {
+                    println("\n========================================")
+                    println("CACHE_LOG: HIT /api/users (query=${searchQuery ?: "<none>"})")
+                    println("========================================\n")
+                }
+                filterUsers(usersCache.orEmpty(), searchQuery)
+            }
         }
 
     suspend fun getCurrentUser(): Result<RegisterRequest> =
@@ -119,7 +137,9 @@ class AuthApiService(
             httpClient.put("$baseUrl/api/users/profile") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
-            }.body<RegisterRequest>()
+            }.body<RegisterRequest>().also {
+                invalidateUsersCache()
+            }
         }
 
     suspend fun sendMessage(message: Message): Result<Message> =
@@ -140,7 +160,9 @@ class AuthApiService(
             httpClient.post("$baseUrl/api/users/$targetUserId/reviews") {
                 contentType(ContentType.Application.Json)
                 setBody(Review(content = content, rating = rating))
-            }.body<RegisterRequest>()
+            }.body<RegisterRequest>().also {
+                invalidateUsersCache()
+            }
         }
 
     suspend fun getHistory(): Result<List<Message>> =
@@ -150,5 +172,22 @@ class AuthApiService(
 
     fun close() {
         httpClient.close()
+    }
+
+    private fun filterUsers(users: List<RegisterRequest>, searchQuery: String?): List<RegisterRequest> {
+        val query = searchQuery?.trim()?.lowercase().orEmpty()
+        if (query.isBlank()) return users
+
+        return users.filter { user ->
+            user.username.lowercase().contains(query) ||
+                user.email.lowercase().contains(query) ||
+                user.providedService?.lowercase()?.contains(query) == true ||
+                user.description?.lowercase()?.contains(query) == true ||
+                user.hourlyRate?.toString()?.contains(query) == true
+        }
+    }
+
+    private fun invalidateUsersCache() {
+        usersCache = null
     }
 }

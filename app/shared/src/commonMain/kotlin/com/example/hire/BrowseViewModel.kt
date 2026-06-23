@@ -128,11 +128,12 @@ class BrowseViewModel(
     }
 
     private suspend fun fetchBrowseUsers(query: String): Result<List<BrowseUser>> {
+        val queryParam = query.takeIf { it.isNotBlank() }
+        val usersResult = apiService.getAllUsers(queryParam)
         val meResult = apiService.getCurrentUser().getOrNull()
         val myId = meResult?.id ?: meResult?.email ?: ""
 
-        val queryParam = query.takeIf { it.isNotBlank() }
-        return apiService.getAllUsers(queryParam).map { fetchedUsers ->
+        return usersResult.map { fetchedUsers ->
             fetchedUsers
                 .filter { (it.id ?: it.email) != myId }
                 .mapIndexed { index, user ->
