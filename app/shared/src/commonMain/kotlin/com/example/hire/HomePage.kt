@@ -181,7 +181,13 @@ fun HomePage(
                 1 -> MessagesTab(viewModel = messagesViewModel, onConversationClick = onConversationClick)
                 2 -> CategoriesTab(
                     viewModel = categoriesViewModel,
-                    onUserClick = onUserClick
+                    onUserClick = onUserClick,
+                    onSeeMoreClick = { searchTerm ->
+                        currentTab = 0
+                        onTabChanged(0)
+                        browseViewModel.updateSearchQuery(searchTerm)
+                        browseViewModel.triggerSearch()
+                    }
                 )
                 3 -> {
                     ProfileTab(
@@ -573,19 +579,26 @@ fun ConversationCard(
 @Composable
 fun CategoriesTab(
     viewModel: CategoriesViewModel,
-    onUserClick: (BrowseUser) -> Unit
+    onUserClick: (BrowseUser) -> Unit,
+    onSeeMoreClick: (String) -> Unit
 ) {
     val tutors by viewModel.tutors
     val handymen by viewModel.handymen
     val petSitters by viewModel.petSitters
+    val electricians by viewModel.electricians
+    val relaxPros by viewModel.relaxPros
 
     val tutorsLoading by viewModel.tutorsLoading
     val handymenLoading by viewModel.handymenLoading
     val petSittersLoading by viewModel.petSittersLoading
+    val electriciansLoading by viewModel.electriciansLoading
+    val relaxProsLoading by viewModel.relaxProsLoading
 
     val tutorsError by viewModel.tutorsError
     val handymenError by viewModel.handymenError
     val petSittersError by viewModel.petSittersError
+    val electriciansError by viewModel.electriciansError
+    val relaxProsError by viewModel.relaxProsError
 
     ApiErrorDialogHost(
         errorMessage = tutorsError,
@@ -602,6 +615,16 @@ fun CategoriesTab(
         title = "Pet sitters failed",
         onDismissError = { viewModel.clearPetSittersError() }
     )
+    ApiErrorDialogHost(
+        errorMessage = electriciansError,
+        title = "Electricians failed",
+        onDismissError = { viewModel.clearElectriciansError() }
+    )
+    ApiErrorDialogHost(
+        errorMessage = relaxProsError,
+        title = "Ready to relax? failed",
+        onDismissError = { viewModel.clearRelaxProsError() }
+    )
 
     LaunchedEffect(Unit) {
         viewModel.loadCategories()
@@ -614,32 +637,65 @@ fun CategoriesTab(
         verticalArrangement = Arrangement.spacedBy(20.dp),
         contentPadding = PaddingValues(bottom = 16.dp)
     ) {
-        item {
-            CategorySection(
-                title = "Tutors",
-                users = tutors,
-                isLoading = tutorsLoading,
-                errorMessage = tutorsError,
-                onUserClick = onUserClick
-            )
+        if (tutorsLoading || tutors.isNotEmpty()) {
+            item {
+                CategorySection(
+                    title = "Tutors",
+                    users = tutors,
+                    isLoading = tutorsLoading,
+                    searchTerm = "tutor",
+                    onUserClick = onUserClick,
+                    onSeeMoreClick = onSeeMoreClick
+                )
+            }
         }
-        item {
-            CategorySection(
-                title = "Handymen",
-                users = handymen,
-                isLoading = handymenLoading,
-                errorMessage = handymenError,
-                onUserClick = onUserClick
-            )
+        if (handymenLoading || handymen.isNotEmpty()) {
+            item {
+                CategorySection(
+                    title = "Hire Handymen",
+                    users = handymen,
+                    isLoading = handymenLoading,
+                    searchTerm = "Handyman",
+                    onUserClick = onUserClick,
+                    onSeeMoreClick = onSeeMoreClick
+                )
+            }
         }
-        item {
-            CategorySection(
-                title = "Pet Sitters",
-                users = petSitters,
-                isLoading = petSittersLoading,
-                errorMessage = petSittersError,
-                onUserClick = onUserClick
-            )
+        if (petSittersLoading || petSitters.isNotEmpty()) {
+            item {
+                CategorySection(
+                    title = "Pet Sitters",
+                    users = petSitters,
+                    isLoading = petSittersLoading,
+                    searchTerm = "sitter",
+                    onUserClick = onUserClick,
+                    onSeeMoreClick = onSeeMoreClick
+                )
+            }
+        }
+        if (electriciansLoading || electricians.isNotEmpty()) {
+            item {
+                CategorySection(
+                    title = "Need Electricians?",
+                    users = electricians,
+                    isLoading = electriciansLoading,
+                    searchTerm = "electrician",
+                    onUserClick = onUserClick,
+                    onSeeMoreClick = onSeeMoreClick
+                )
+            }
+        }
+        if (relaxProsLoading || relaxPros.isNotEmpty()) {
+            item {
+                CategorySection(
+                    title = "Ready to relax with a massage?",
+                    users = relaxPros,
+                    isLoading = relaxProsLoading,
+                    searchTerm = "massage",
+                    onUserClick = onUserClick,
+                    onSeeMoreClick = onSeeMoreClick
+                )
+            }
         }
     }
 }
@@ -649,8 +705,9 @@ private fun CategorySection(
     title: String,
     users: List<BrowseUser>,
     isLoading: Boolean,
-    errorMessage: String?,
-    onUserClick: (BrowseUser) -> Unit
+    searchTerm: String,
+    onUserClick: (BrowseUser) -> Unit,
+    onSeeMoreClick: (String) -> Unit
 ) {
     Column {
         Text(
@@ -673,20 +730,6 @@ private fun CategorySection(
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 }
             }
-            errorMessage != null && users.isEmpty() -> {
-                Text(
-                    text = "Error loading $title",
-                    color = Color.Red,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-            users.isEmpty() -> {
-                Text(
-                    text = "No users found",
-                    color = Color.Gray,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
             else -> {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -695,8 +738,38 @@ private fun CategorySection(
                     items(users) { user ->
                         CategoryUserCard(user = user, onUserClick = onUserClick)
                     }
+                    item {
+                        CategorySeeMoreCard(onClick = { onSeeMoreClick(searchTerm) })
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CategorySeeMoreCard(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .width(140.dp)
+            .height(188.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "See more",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF007AFF)
+            )
         }
     }
 }
@@ -789,6 +862,12 @@ class CategoriesViewModel(
     private val _petSitters = mutableStateOf<List<BrowseUser>>(emptyList())
     val petSitters: State<List<BrowseUser>> = _petSitters
 
+    private val _electricians = mutableStateOf<List<BrowseUser>>(emptyList())
+    val electricians: State<List<BrowseUser>> = _electricians
+
+    private val _relaxPros = mutableStateOf<List<BrowseUser>>(emptyList())
+    val relaxPros: State<List<BrowseUser>> = _relaxPros
+
     private val _tutorsLoading = mutableStateOf(false)
     val tutorsLoading: State<Boolean> = _tutorsLoading
 
@@ -798,6 +877,12 @@ class CategoriesViewModel(
     private val _petSittersLoading = mutableStateOf(false)
     val petSittersLoading: State<Boolean> = _petSittersLoading
 
+    private val _electriciansLoading = mutableStateOf(false)
+    val electriciansLoading: State<Boolean> = _electriciansLoading
+
+    private val _relaxProsLoading = mutableStateOf(false)
+    val relaxProsLoading: State<Boolean> = _relaxProsLoading
+
     private val _tutorsError = mutableStateOf<String?>(null)
     val tutorsError: State<String?> = _tutorsError
 
@@ -806,6 +891,12 @@ class CategoriesViewModel(
 
     private val _petSittersError = mutableStateOf<String?>(null)
     val petSittersError: State<String?> = _petSittersError
+
+    private val _electriciansError = mutableStateOf<String?>(null)
+    val electriciansError: State<String?> = _electriciansError
+
+    private val _relaxProsError = mutableStateOf<String?>(null)
+    val relaxProsError: State<String?> = _relaxProsError
 
     private var hasLoadedOnce = false
 
@@ -828,7 +919,19 @@ class CategoriesViewModel(
             searchWord = "sitter",
             listSetter = { _petSitters.value = it },
             loadingSetter = { _petSittersLoading.value = it },
-            errorSetter = { _petSittersError.value = it },
+            errorSetter = { _petSittersError.value = it }
+        )
+        loadCategory(
+            searchWord = "electrician",
+            listSetter = { _electricians.value = it },
+            loadingSetter = { _electriciansLoading.value = it },
+            errorSetter = { _electriciansError.value = it }
+        )
+        loadCategory(
+            searchWord = "massage",
+            listSetter = { _relaxPros.value = it },
+            loadingSetter = { _relaxProsLoading.value = it },
+            errorSetter = { _relaxProsError.value = it },
             onComplete = { hasLoadedOnce = true }
         )
     }
@@ -843,6 +946,14 @@ class CategoriesViewModel(
 
     fun clearPetSittersError() {
         _petSittersError.value = null
+    }
+
+    fun clearElectriciansError() {
+        _electriciansError.value = null
+    }
+
+    fun clearRelaxProsError() {
+        _relaxProsError.value = null
     }
 
     private fun loadCategory(
