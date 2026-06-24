@@ -110,6 +110,14 @@ class AuthApiService(
             response
         }
 
+    suspend fun logout(): Result<Unit> =
+        apiCall("logout") {
+            httpClient.post("$baseUrl/api/users/logout")
+            sessionManager.clearSession()
+            invalidateUsersCache()
+            Unit
+        }
+
     suspend fun getAllUsers(searchQuery: String? = null): Result<List<RegisterRequest>> =
         apiCall("getAllUsers") {
             usersCacheMutex.withLock {

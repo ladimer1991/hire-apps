@@ -184,7 +184,12 @@ fun HomePage(
                     onUserClick = onUserClick
                 )
                 3 -> {
-                    ProfileTab(userName = currentUserName ?: "User", userImage = currentUserImage, onEditProfileClick = onEditProfileClick)
+                    ProfileTab(
+                        userName = currentUserName ?: "User",
+                        userImage = currentUserImage,
+                        onEditProfileClick = onEditProfileClick,
+                        onLogoutClick = onBackClick
+                    )
                 }
             }
         }
@@ -877,7 +882,12 @@ class CategoriesViewModel(
 }
 
 @Composable
-fun ProfileTab(userName: String, userImage: String?, onEditProfileClick: () -> Unit) {
+fun ProfileTab(
+    userName: String,
+    userImage: String?,
+    onEditProfileClick: () -> Unit,
+    onLogoutClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -951,12 +961,20 @@ fun ProfileTab(userName: String, userImage: String?, onEditProfileClick: () -> U
         )
         
         // Placeholder for more settings
-        repeat(3) { index ->
+        repeat(4) { index ->
+            val title = when(index) {
+                0 -> "Notifications"
+                1 -> "Privacy & Security"
+                2 -> "Help & Support"
+                else -> "Log Out"
+            }
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
-                    .clickable { },
+                    .clickable { 
+                        if (index == 3) onLogoutClick()
+                    },
                 shape = RoundedCornerShape(12.dp),
                 color = Color.White
             ) {
@@ -966,14 +984,13 @@ fun ProfileTab(userName: String, userImage: String?, onEditProfileClick: () -> U
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = when(index) {
-                            0 -> "Notifications"
-                            1 -> "Privacy & Security"
-                            else -> "Help & Support"
-                        },
-                        style = MaterialTheme.typography.bodyLarge
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (index == 3) Color.Red else Color.Black
                     )
-                    Text("›", fontSize = 24.sp, color = Color.Gray)
+                    if (index < 3) {
+                        Text("›", fontSize = 24.sp, color = Color.Gray)
+                    }
                 }
             }
         }
