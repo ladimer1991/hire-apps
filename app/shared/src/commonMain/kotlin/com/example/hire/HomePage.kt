@@ -55,7 +55,8 @@ fun HomePage(
     var currentTab by remember { mutableStateOf(selectedTab) }
     val tabs = listOf("Browse", "Messages", "Categories", "Profile")
 
-    LaunchedEffect(browseViewModel, messagesViewModel, categoriesViewModel) {
+    LaunchedEffect(browseViewModel, messagesViewModel, categoriesViewModel, currentUserId) {
+        categoriesViewModel.updateCurrentUserId(currentUserId)
         browseViewModel.loadUsersAwait()
         messagesViewModel.loadConversations()
         categoriesViewModel.loadCategories()
@@ -181,6 +182,7 @@ fun HomePage(
                 1 -> MessagesTab(viewModel = messagesViewModel, onConversationClick = onConversationClick)
                 2 -> CategoriesTab(
                     viewModel = categoriesViewModel,
+                    currentUserId = currentUserId,
                     onUserClick = onUserClick,
                     onSeeMoreClick = { searchTerm ->
                         currentTab = 0
@@ -579,6 +581,7 @@ fun ConversationCard(
 @Composable
 fun CategoriesTab(
     viewModel: CategoriesViewModel,
+    currentUserId: String?,
     onUserClick: (BrowseUser) -> Unit,
     onSeeMoreClick: (String) -> Unit
 ) {
@@ -626,7 +629,8 @@ fun CategoriesTab(
         onDismissError = { viewModel.clearRelaxProsError() }
     )
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(currentUserId) {
+        viewModel.updateCurrentUserId(currentUserId)
         viewModel.loadCategories()
     }
 
@@ -853,6 +857,8 @@ private fun CategoryUserCard(
 class CategoriesViewModel(
     private val apiService: AuthApiService = AuthApiService()
 ) : ViewModel() {
+    private var currentUserId: String? = null
+
     private val _tutors = mutableStateOf<List<BrowseUser>>(emptyList())
     val tutors: State<List<BrowseUser>> = _tutors
 
@@ -899,6 +905,18 @@ class CategoriesViewModel(
     val relaxProsError: State<String?> = _relaxProsError
 
     private var hasLoadedOnce = false
+
+    fun updateCurrentUserId(userId: String?) {
+        currentUserId = userId?.takeIf { it.isNotBlank() }
+
+        if (currentUserId == null) return
+
+        _tutors.value = _tutors.value.filterNotCurrentUser()
+        _handymen.value = _handymen.value.filterNotCurrentUser()
+        _petSitters.value = _petSitters.value.filterNotCurrentUser()
+        _electricians.value = _electricians.value.filterNotCurrentUser()
+        _relaxPros.value = _relaxPros.value.filterNotCurrentUser()
+    }
 
     fun loadCategories(forceRefresh: Boolean = false) {
         if (hasLoadedOnce && !forceRefresh) return
@@ -979,7 +997,7 @@ class CategoriesViewModel(
                         base64Images = user.images,
                         reviews = user.reviews
                     )
-                }
+                }.filterNotCurrentUser()
                 listSetter(mappedUsers)
             }.onFailure { error ->
                 logApiError("categories:$searchWord", error)
@@ -989,6 +1007,11 @@ class CategoriesViewModel(
             loadingSetter(false)
             onComplete()
         }
+    }
+
+    private fun List<BrowseUser>.filterNotCurrentUser(): List<BrowseUser> {
+        val loggedInId = currentUserId ?: return this
+        return filter { it.id != loggedInId }
     }
 }
 
