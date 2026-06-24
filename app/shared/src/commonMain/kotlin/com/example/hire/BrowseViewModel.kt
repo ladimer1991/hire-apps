@@ -33,6 +33,8 @@ class BrowseViewModel(
     private var searchJob: Job? = null
     private var prefetchJob: Job? = null
     private val prefetchedUsersByQuery = mutableMapOf<String, List<BrowseUser>>()
+    private val prefetchErrorsByQuery = mutableMapOf<String, String>()
+    private var latestPrefetchQueryKey: String? = null
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
@@ -44,17 +46,29 @@ class BrowseViewModel(
     }
 
     fun triggerSearch() {
-        _errorMessage.value = null
-        prefetchedUsersByQuery[cacheKey(_searchQuery.value)]?.let { cachedUsers ->
-            // Keep existing click-to-search behavior, but instantly show prefetched data if available.
-            _internalUsers = cachedUsers
-            _displayedUsers.value = cachedUsers
-            hasLoadedOnce = true
-        }
+        viewModelScope.launch {
+            _errorMessage.value = null
+            _isLoadingVisible.value = true
 
-        _isSearchTriggered.value = true
-        _isLoadingVisible.value = true
-        loadUsers(forceRefresh = true)
+            val clickedQuery = _searchQuery.value
+            val queryKey = cacheKey(clickedQuery)
+            val pendingPrefetch = if (latestPrefetchQueryKey == queryKey) prefetchJob else null
+
+            pendingPrefetch?.join()
+
+            prefetchedUsersByQuery[queryKey]?.let { cachedUsers ->
+                _internalUsers = cachedUsers
+                _displayedUsers.value = cachedUsers
+                hasLoadedOnce = true
+                _isLoadingVisible.value = false
+                return@launch
+            }
+
+            prefetchErrorsByQuery[queryKey]?.let { message ->
+                _errorMessage.value = message
+            }
+            _isLoadingVisible.value = false
+        }
     }
 
     fun triggerRefresh() {
@@ -117,12 +131,19 @@ class BrowseViewModel(
         val queryKey = cacheKey(query)
         if (prefetchedUsersByQuery.containsKey(queryKey)) return
 
+        latestPrefetchQueryKey = queryKey
+
         prefetchJob?.cancel()
         prefetchJob = viewModelScope.launch {
             // Debounce typing to avoid firing a request per keystroke.
             delay(250)
             fetchBrowseUsers(query).onSuccess { fetchedUsers ->
                 prefetchedUsersByQuery[queryKey] = fetchedUsers
+                prefetchErrorsByQuery.remove(queryKey)
+            }.onFailure { error ->
+                if (error !is CancellationException) {
+                    prefetchErrorsByQuery[queryKey] = error.message ?: "Failed to load search results"
+                }
             }
         }
     }
