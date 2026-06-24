@@ -82,82 +82,116 @@ fun RegistrationPage(
                 }
             }
 
-            // Profile Details
+            // Question: Will you provide a service?
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
-                    Text("Profile Details", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    OutlinedTextField(
-                        value = viewModel.providedService.value,
-                        onValueChange = viewModel::updateProvidedService,
-                        label = { Text("Service you provide") },
-                        placeholder = { Text("e.g. Dog Walking, Math Tutoring") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Text("Service Provider", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = viewModel.hourlyRate.value,
-                        onValueChange = viewModel::updateHourlyRate,
-                        label = { Text("Hourly Rate ($)") },
-                        placeholder = { Text("e.g. 25.00") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = viewModel.description.value,
-                        onValueChange = viewModel::updateDescription,
-                        label = { Text("Description") },
-                        placeholder = { Text("Tell potential clients about yourself...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3
-                    )
+                    Text("Will you provide a service?", fontSize = 16.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().clickable { viewModel.updateIsServiceProvider(true) }
+                    ) {
+                        RadioButton(
+                            selected = viewModel.isServiceProvider.value,
+                            onClick = { viewModel.updateIsServiceProvider(true) }
+                        )
+                        Text("Yes")
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().clickable { viewModel.updateIsServiceProvider(false) }
+                    ) {
+                        RadioButton(
+                            selected = !viewModel.isServiceProvider.value,
+                            onClick = { viewModel.updateIsServiceProvider(false) }
+                        )
+                        Text("No")
+                    }
                 }
             }
 
-            // Image Picker Section
-            val imagePickerLauncher = rememberImagePickerLauncher { base64 ->
-                viewModel.addImage(base64)
-            }
-            
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
-                    Text("Profile Images (${viewModel.images.size}/4)", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        repeat(4) { index ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
-                                    .clickable { if (index >= viewModel.images.size) imagePickerLauncher() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (index < viewModel.images.size) {
-                                    val bitmap = remember(viewModel.images[index]) {
-                                        decodeBase64ToBitmap(viewModel.images[index])
+            if (viewModel.isServiceProvider.value) {
+                // Profile Details
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+                        Text("Profile Details", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        OutlinedTextField(
+                            value = viewModel.providedService.value,
+                            onValueChange = viewModel::updateProvidedService,
+                            label = { Text("Service you provide") },
+                            placeholder = { Text("e.g. Dog Walking, Math Tutoring") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = viewModel.hourlyRate.value,
+                            onValueChange = viewModel::updateHourlyRate,
+                            label = { Text("Hourly Rate ($)") },
+                            placeholder = { Text("e.g. 25.00") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = viewModel.description.value,
+                            onValueChange = viewModel::updateDescription,
+                            label = { Text("Description") },
+                            placeholder = { Text("Tell potential clients about yourself...") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3
+                        )
+                    }
+                }
+
+                // Image Picker Section
+                val imagePickerLauncher = rememberImagePickerLauncher { base64 ->
+                    viewModel.addImage(base64)
+                }
+                
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+                        Text("Profile Images (${viewModel.images.size}/4)", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            repeat(4) { index ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f)
+                                        .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
+                                        .clickable { if (index >= viewModel.images.size) imagePickerLauncher() },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (index < viewModel.images.size) {
+                                        val bitmap = remember(viewModel.images[index]) {
+                                            decodeBase64ToBitmap(viewModel.images[index])
+                                        }
+                                        if (bitmap != null) {
+                                            androidx.compose.foundation.Image(
+                                                bitmap = bitmap,
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                            )
+                                        }
+                                    } else {
+                                        Text("+", fontSize = 24.sp, color = Color.Gray)
                                     }
-                                    if (bitmap != null) {
-                                        androidx.compose.foundation.Image(
-                                            bitmap = bitmap,
-                                            contentDescription = null,
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                        )
-                                    }
-                                } else {
-                                    Text("+", fontSize = 24.sp, color = Color.Gray)
                                 }
                             }
                         }

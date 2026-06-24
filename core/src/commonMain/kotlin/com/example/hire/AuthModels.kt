@@ -12,6 +12,7 @@ data class RegisterRequest(
     val username: String,
     val password: String,
     val images: List<String> = emptyList(),
+    val isServiceProvider: Boolean = true,
     val reviews: List<Review> = emptyList(),
     val creditCard: CreditCardInfo? = null,
     val billingAddress: BillingAddress? = null

@@ -14,6 +14,19 @@ class RegistrationViewModel(
     private val _description = mutableStateOf("")
     val description: State<String> = _description
 
+    private val _isServiceProvider = mutableStateOf(false)
+    val isServiceProvider: State<Boolean> = _isServiceProvider
+
+    fun updateIsServiceProvider(value: Boolean) {
+        _isServiceProvider.value = value
+        if (!value) {
+            _description.value = ""
+            _providedService.value = ""
+            _hourlyRate.value = ""
+            _images.clear()
+        }
+    }
+
     private val _providedService = mutableStateOf("")
     val providedService: State<String> = _providedService
     
@@ -225,7 +238,8 @@ class RegistrationViewModel(
                     email = email.value,
                     username = username.value,
                     password = password.value,
-                    images = _images.toList(),
+                    images = if (_isServiceProvider.value) _images.toList() else emptyList(),
+                    isServiceProvider = _isServiceProvider.value,
                     creditCard = creditCard,
                     billingAddress = billingAddress
                 )
