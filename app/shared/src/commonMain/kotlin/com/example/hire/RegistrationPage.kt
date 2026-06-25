@@ -30,8 +30,11 @@ fun RegistrationPage(
             CenterAlignedTopAppBar(
                 title = { Text("Create Account", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    TextButton(onClick = onBackClick) {
-                        Text("Back", color = Color(0xFF007AFF))
+                    TextButton(
+                        onClick = onBackClick,
+                        enabled = !viewModel.isLoading.value
+                    ) {
+                        Text("Back", color = if (viewModel.isLoading.value) Color.Gray else Color(0xFF007AFF))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -62,14 +65,16 @@ fun RegistrationPage(
                         value = viewModel.username.value,
                         onValueChange = viewModel::updateUsername,
                         label = { Text("Username") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !viewModel.isLoading.value
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = viewModel.email.value,
                         onValueChange = viewModel::updateEmail,
                         label = { Text("Email Address") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !viewModel.isLoading.value
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
@@ -77,7 +82,8 @@ fun RegistrationPage(
                         onValueChange = viewModel::updatePassword,
                         label = { Text("Password") },
                         visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !viewModel.isLoading.value
                     )
                 }
             }
@@ -93,21 +99,23 @@ fun RegistrationPage(
                     Text("Will you provide a service?", fontSize = 16.sp)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth().clickable { viewModel.updateIsServiceProvider(true) }
+                        modifier = Modifier.fillMaxWidth().clickable(enabled = !viewModel.isLoading.value) { viewModel.updateIsServiceProvider(true) }
                     ) {
                         RadioButton(
                             selected = viewModel.isServiceProvider.value,
-                            onClick = { viewModel.updateIsServiceProvider(true) }
+                            onClick = { viewModel.updateIsServiceProvider(true) },
+                            enabled = !viewModel.isLoading.value
                         )
                         Text("Yes")
                     }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth().clickable { viewModel.updateIsServiceProvider(false) }
+                        modifier = Modifier.fillMaxWidth().clickable(enabled = !viewModel.isLoading.value) { viewModel.updateIsServiceProvider(false) }
                     ) {
                         RadioButton(
                             selected = !viewModel.isServiceProvider.value,
-                            onClick = { viewModel.updateIsServiceProvider(false) }
+                            onClick = { viewModel.updateIsServiceProvider(false) },
+                            enabled = !viewModel.isLoading.value
                         )
                         Text("No")
                     }
@@ -129,7 +137,8 @@ fun RegistrationPage(
                             onValueChange = viewModel::updateProvidedService,
                             label = { Text("Service you provide") },
                             placeholder = { Text("e.g. Dog Walking, Math Tutoring") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !viewModel.isLoading.value
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
@@ -137,7 +146,8 @@ fun RegistrationPage(
                             onValueChange = viewModel::updateHourlyRate,
                             label = { Text("Hourly Rate ($)") },
                             placeholder = { Text("e.g. 25.00") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !viewModel.isLoading.value
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
@@ -146,7 +156,8 @@ fun RegistrationPage(
                             label = { Text("Description") },
                             placeholder = { Text("Tell potential clients about yourself...") },
                             modifier = Modifier.fillMaxWidth(),
-                            minLines = 3
+                            minLines = 3,
+                            enabled = !viewModel.isLoading.value
                         )
                     }
                 }
@@ -174,7 +185,7 @@ fun RegistrationPage(
                                         .weight(1f)
                                         .aspectRatio(1f)
                                         .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
-                                        .clickable { if (index >= viewModel.images.size) imagePickerLauncher() },
+                                        .clickable(enabled = !viewModel.isLoading.value) { if (index >= viewModel.images.size) imagePickerLauncher() },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (index < viewModel.images.size) {

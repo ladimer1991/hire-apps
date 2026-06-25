@@ -29,13 +29,19 @@ fun EditProfilePage(
             CenterAlignedTopAppBar(
                 title = { Text("Edit Profile", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Back", color = Color(0xFF007AFF))
+                    TextButton(
+                        onClick = onBack,
+                        enabled = !viewModel.isLoading.value
+                    ) {
+                        Text("Back", color = if (viewModel.isLoading.value) Color.Gray else Color(0xFF007AFF))
                     }
                 },
                 actions = {
-                    TextButton(onClick = { viewModel.saveProfile() }) {
-                        Text("Save", color = Color(0xFF007AFF), fontWeight = FontWeight.Bold)
+                    TextButton(
+                        onClick = { viewModel.saveProfile() },
+                        enabled = !viewModel.isLoading.value
+                    ) {
+                        Text("Save", color = if (viewModel.isLoading.value) Color.Gray else Color(0xFF007AFF), fontWeight = FontWeight.Bold)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
@@ -65,7 +71,8 @@ fun EditProfilePage(
                             value = viewModel.username.value,
                             onValueChange = viewModel::updateUsername,
                             label = { Text("Username") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !viewModel.isLoading.value
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
@@ -92,7 +99,8 @@ fun EditProfilePage(
                             onValueChange = viewModel::updateProvidedService,
                             label = { Text("Service you provide") },
                             placeholder = { Text("e.g. Dog Walking, Math Tutoring") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !viewModel.isLoading.value
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
@@ -100,7 +108,8 @@ fun EditProfilePage(
                             onValueChange = viewModel::updateHourlyRate,
                             label = { Text("Hourly Rate ($)") },
                             placeholder = { Text("e.g. 25.00") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !viewModel.isLoading.value
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
@@ -109,7 +118,8 @@ fun EditProfilePage(
                             label = { Text("Description") },
                             placeholder = { Text("Tell potential clients about yourself...") },
                             modifier = Modifier.fillMaxWidth(),
-                            minLines = 3
+                            minLines = 3,
+                            enabled = !viewModel.isLoading.value
                         )
                     }
                 }
@@ -137,7 +147,7 @@ fun EditProfilePage(
                                         .weight(1f)
                                         .aspectRatio(1f)
                                         .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
-                                        .clickable { 
+                                        .clickable(enabled = !viewModel.isLoading.value) {
                                             if (index < viewModel.images.size) {
                                                 viewModel.removeImage(index)
                                             } else {
