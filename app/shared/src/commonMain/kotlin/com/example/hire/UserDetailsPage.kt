@@ -41,11 +41,24 @@ fun UserDetailsPage(
         onDismissError = { errorMessage = null }
     )
 
-    // State for local reviews (optimistic UI update)
-    var localReviews by remember { mutableStateOf(user.reviews) }
+    // Reviews are fetched from the dedicated reviews collection when this page loads.
+    var localReviews by remember(user.id) { mutableStateOf<List<Review>>(emptyList()) }
+    var isLoadingReviews by remember { mutableStateOf(true) }
     var rating by remember { mutableStateOf(0) }
     var reviewText by remember { mutableStateOf("") }
     var isSubmitting by remember { mutableStateOf(false) }
+
+    LaunchedEffect(user.id) {
+        isLoadingReviews = true
+        apiService.getUserReviews(user.id)
+            .onSuccess { reviews ->
+                localReviews = reviews
+            }
+            .onFailure { error ->
+                errorMessage = error.toFriendlyApiMessage("Failed to load reviews.")
+            }
+        isLoadingReviews = false
+    }
 
     Scaffold(
         topBar = {
@@ -209,7 +222,16 @@ fun UserDetailsPage(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 32.dp))
 
                 // Existing Reviews List
-                if (localReviews.isNotEmpty()) {
+                if (isLoadingReviews) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                } else if (localReviews.isNotEmpty()) {
                     Text(
                         text = "Reviews",
                         style = MaterialTheme.typography.titleLarge,
@@ -289,8 +311,9 @@ fun UserDetailsPage(
                         coroutineScope.launch {
                             isSubmitting = true
                             apiService.addReview(user.id, reviewText, rating.toDouble())
-                                .onSuccess { updatedUser ->
-                                    localReviews = updatedUser.reviews
+                                .onSuccess { savedReview ->
+                                    localReviews = (listOf(savedReview) + localReviews)
+                                        .distinctBy { it.id ?: "${it.reviewerId}:${it.timestamp}:${it.content}" }
                                     rating = 0
                                     reviewText = ""
                                 }.onFailure { error ->

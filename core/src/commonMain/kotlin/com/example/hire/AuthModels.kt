@@ -13,18 +13,27 @@ data class RegisterRequest(
     val password: String,
     val images: List<String> = emptyList(),
     val isServiceProvider: Boolean = true,
-    val reviews: List<Review> = emptyList(),
+    val rating: Rating? = null,
     val creditCard: CreditCardInfo? = null,
     val billingAddress: BillingAddress? = null
 )
 
 @Serializable
 data class Review(
+    val id: String? = null,
+    val targetUserId: String? = null,
     val reviewerId: String? = null,
     val reviewerUsername: String? = null,
     val content: String,
     val rating: Double,
     val timestamp: Long = 0L
+)
+
+@Serializable
+data class Rating(
+    val numOfStars: Int,
+    val numOfReviews: Int,
+    val overallRating: Double
 )
 
 @Serializable

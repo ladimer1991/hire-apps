@@ -14,11 +14,15 @@ import io.ktor.client.request.setBody
 import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 class AuthApiService(
     private val baseUrl: String = "https://user-service-71791662068.us-central1.run.app",
@@ -72,6 +76,11 @@ class AuthApiService(
         }
     }
 
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
+
     private suspend fun <T> apiCall(
         source: String,
         block: suspend () -> T
@@ -90,24 +99,56 @@ class AuthApiService(
         apiCall("register") {
             val requestLog = request.copy(images = emptyList())
             println("HTTP_LOG: REQUEST_BODY: $requestLog")
-            val response: AuthResponse = httpClient.post("$baseUrl/api/users/register") {
+            val response = httpClient.post("$baseUrl/api/users/register") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
-            }.body()
-            sessionManager.saveToken(response.token)
-            invalidateMeCache()
-            response
+            }
+            val body = response.bodyAsText()
+
+            if (!response.status.isSuccess()) {
+                throw Exception(extractServerMessage(body, "Registration failed"))
+            }
+
+            val authResponse = runCatching { json.decodeFromString<AuthResponse>(body) }.getOrNull()
+            if (authResponse != null) {
+                sessionManager.saveToken(authResponse.token)
+                invalidateMeCache()
+                return@apiCall authResponse
+            }
+
+            val registerResponse = runCatching { json.decodeFromString<RegisterResponse>(body) }.getOrNull()
+            if (registerResponse?.success == true) {
+                val loginResponse = login(
+                    LoginRequest(
+                        email = request.email,
+                        password = request.password
+                    )
+                ).getOrElse { throw it }
+
+                return@apiCall loginResponse
+            }
+
+            throw Exception(registerResponse?.message ?: extractServerMessage(body, "Registration failed"))
         }
 
     suspend fun login(request: LoginRequest): Result<AuthResponse> =
         apiCall("login") {
-            val response: AuthResponse = httpClient.post("$baseUrl/api/users/login") {
+            val response = httpClient.post("$baseUrl/api/users/login") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
-            }.body()
-            sessionManager.saveToken(response.token)
+            }
+            val body = response.bodyAsText()
+
+            if (!response.status.isSuccess()) {
+                throw Exception(extractServerMessage(body, "Login failed"))
+            }
+
+            val authResponse = runCatching { json.decodeFromString<AuthResponse>(body) }
+                .getOrElse { throw Exception(extractServerMessage(body, "Login response was invalid")) }
+
+            sessionManager.saveToken(authResponse.token)
             invalidateMeCache()
-            response
+            authResponse
         }
 
     suspend fun logout(): Result<Unit> =
@@ -157,12 +198,17 @@ class AuthApiService(
             httpClient.get("$baseUrl/api/messages/conversation/$otherUserId").body<List<Message>>()
         }
 
-    suspend fun addReview(targetUserId: String, content: String, rating: Double): Result<RegisterRequest> =
+    suspend fun addReview(targetUserId: String, content: String, rating: Double): Result<Review> =
         apiCall("addReview") {
             httpClient.post("$baseUrl/api/users/$targetUserId/reviews") {
                 contentType(ContentType.Application.Json)
                 setBody(Review(content = content, rating = rating))
-            }.body<RegisterRequest>()
+            }.body<Review>()
+        }
+
+    suspend fun getUserReviews(targetUserId: String): Result<List<Review>> =
+        apiCall("getUserReviews") {
+            httpClient.get("$baseUrl/api/users/$targetUserId/reviews").body<List<Review>>()
         }
 
     suspend fun getHistory(): Result<List<Message>> =
@@ -176,5 +222,16 @@ class AuthApiService(
 
     private fun invalidateMeCache() {
         meCache = null
+    }
+
+    private fun extractServerMessage(body: String, fallback: String): String {
+        if (body.isBlank()) return fallback
+
+        val parsed = runCatching { json.parseToJsonElement(body) }.getOrNull()
+        val jsonObject = parsed as? JsonObject ?: return fallback
+
+        return jsonObject["message"]?.jsonPrimitive?.contentOrNull
+            ?: jsonObject["error"]?.jsonPrimitive?.contentOrNull
+            ?: fallback
     }
 }

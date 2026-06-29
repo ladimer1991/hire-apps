@@ -166,7 +166,7 @@ class BrowseViewModel(
                         description = user.description,
                         color = defaultColors[index % defaultColors.size],
                         base64Images = user.images,
-                        reviews = user.reviews
+                        rating = user.rating
                     )
                 }
         }

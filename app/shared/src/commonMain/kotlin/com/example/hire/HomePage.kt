@@ -212,7 +212,7 @@ data class BrowseUser(
     val description: String? = null,
     val color: Color,
     val base64Images: List<String> = emptyList(),
-    val reviews: List<Review> = emptyList()
+    val rating: Rating? = null
 )
 
 val defaultColors = listOf(
@@ -995,7 +995,7 @@ class CategoriesViewModel(
                         description = user.description,
                         color = defaultColors[index % defaultColors.size],
                         base64Images = user.images,
-                        reviews = user.reviews
+                        rating = user.rating
                     )
                 }.filterNotCurrentUser()
                 listSetter(mappedUsers)
