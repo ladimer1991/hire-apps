@@ -1,16 +1,21 @@
 package com.example.hire
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
@@ -32,6 +37,9 @@ fun ChatDetailScreen(
     var isLoading by remember { mutableStateOf(true) }
     var actualUserId by remember { mutableStateOf(currentUserId) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val partnerBitmap = remember(chatPartnerImage) {
+        chatPartnerImage?.let { decodeBase64ToBitmap(it) }
+    }
 
     ApiErrorDialogHost(
         errorMessage = errorMessage,
@@ -70,7 +78,40 @@ fun ChatDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(chatPartnerName) },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFE5E5EA)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (partnerBitmap != null) {
+                                Image(
+                                    bitmap = partnerBitmap,
+                                    contentDescription = chatPartnerName,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Text(
+                                    text = chatPartnerName.take(1).uppercase(),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = Color(0xFF555555)
+                                )
+                            }
+                        }
+                        Text(
+                            text = chatPartnerName,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                },
                 navigationIcon = {
                     TextButton(onClick = onBackClick) {
                         Text("Back")
