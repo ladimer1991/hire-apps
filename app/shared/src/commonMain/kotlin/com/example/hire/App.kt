@@ -142,11 +142,12 @@ fun App(locationPlatform: LocationPlatform? = null) {
                             appState.value = AppState(currentScreen = Screen.ENTRY)
                         }
                     },
-                    onConversationClick = { userId, userName ->
+                    onConversationClick = { userId, userName, userImage ->
                         appState.value = appState.value.copy(
                             currentScreen = Screen.CHAT,
                             chatPartnerId = userId,
-                            chatPartnerName = userName
+                            chatPartnerName = userName,
+                            chatPartnerImage = userImage
                         )
                     },
                     onUserClick = { user ->
@@ -208,6 +209,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                     currentUserId = appState.value.currentUserId ?: "",
                     chatPartnerId = appState.value.chatPartnerId ?: "",
                     chatPartnerName = appState.value.chatPartnerName ?: "Unknown",
+                    chatPartnerImage = appState.value.chatPartnerImage,
                     onBackClick = {
                         appState.value = appState.value.copy(currentScreen = Screen.BROWSE, selectedHomePageTab = 1)
                     }
@@ -226,7 +228,8 @@ fun App(locationPlatform: LocationPlatform? = null) {
                             appState.value = appState.value.copy(
                                 currentScreen = Screen.CHAT,
                                 chatPartnerId = userId,
-                                chatPartnerName = userName
+                                chatPartnerName = userName,
+                                chatPartnerImage = user.base64Images.firstOrNull()
                             )
                         }
                     )
@@ -247,11 +250,12 @@ fun App(locationPlatform: LocationPlatform? = null) {
                             isOwnProfileDetails = false
                         )
                     },
-                    onConversationClick = { userId, userName ->
+                    onConversationClick = { userId, userName, userImage ->
                         appState.value = appState.value.copy(
                             currentScreen = Screen.CHAT,
                             chatPartnerId = userId,
-                            chatPartnerName = userName
+                            chatPartnerName = userName,
+                            chatPartnerImage = userImage
                         )
                     }
                 )

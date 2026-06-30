@@ -20,6 +20,7 @@ fun ChatDetailScreen(
     currentUserId: String,
     chatPartnerId: String,
     chatPartnerName: String,
+    chatPartnerImage: String? = null,
     onBackClick: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -103,6 +104,13 @@ fun ChatDetailScreen(
                             coroutineScope.launch {
                                 apiService.sendMessage(msg).onSuccess { sentMsg ->
                                     messages = messages + sentMsg
+                                    MessagesViewModel.recordLocalSentMessage(
+                                        otherUserId = chatPartnerId,
+                                        otherUserName = chatPartnerName,
+                                        messageContent = sentMsg.content,
+                                        messageTimestamp = sentMsg.timestamp?.toString(),
+                                        otherUserImage = chatPartnerImage
+                                    )
                                     inputText = ""
                                 }.onFailure { error ->
                                     errorMessage = error.toFriendlyApiMessage("Failed to send message.")

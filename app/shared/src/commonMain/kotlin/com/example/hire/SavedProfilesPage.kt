@@ -144,7 +144,7 @@ class SavedProfilesViewModel(
 fun SavedProfilesPage(
     onBackClick: () -> Unit,
     onUserClick: (BrowseUser) -> Unit,
-    onConversationClick: (String, String) -> Unit,
+    onConversationClick: (String, String, String?) -> Unit,
     viewModel: SavedProfilesViewModel = viewModel { SavedProfilesViewModel() }
 ) {
     val users by viewModel.users
@@ -219,5 +219,3 @@ fun SavedProfilesPage(
         }
     }
 }
-
-

@@ -50,7 +50,7 @@ fun HomePage(
     onProfileImageClick: () -> Unit = {},
     onEditProfileClick: () -> Unit = {},
     onSavedProfilesClick: () -> Unit = {},
-    onConversationClick: (userId: String, userName: String) -> Unit = { _, _ -> },
+    onConversationClick: (userId: String, userName: String, userImage: String?) -> Unit = { _, _, _ -> },
     browseViewModel: BrowseViewModel = viewModel { BrowseViewModel() },
     messagesViewModel: MessagesViewModel = viewModel { MessagesViewModel() },
     categoriesViewModel: CategoriesViewModel = viewModel { CategoriesViewModel() }
@@ -232,7 +232,7 @@ val defaultColors = listOf(
 fun BrowseTab(
     viewModel: BrowseViewModel,
     onUserClick: (BrowseUser) -> Unit,
-    onConversationClick: (userId: String, userName: String) -> Unit
+    onConversationClick: (userId: String, userName: String, userImage: String?) -> Unit
 ) {
     val users by viewModel.users
     val isLoading by viewModel.isLoading
@@ -318,7 +318,7 @@ fun BrowseTab(
 fun UserCard(
     user: BrowseUser,
     onUserClick: (BrowseUser) -> Unit,
-    onConversationClick: (String, String) -> Unit,
+    onConversationClick: (String, String, String?) -> Unit,
     onSaveClick: (String) -> Unit
 ) {
     val pageCount = if (user.base64Images.isNotEmpty()) user.base64Images.size else 1
@@ -458,7 +458,7 @@ fun UserCard(
                         Text("Hire", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
                     OutlinedButton(
-                        onClick = { onConversationClick(user.id, user.name) },
+                        onClick = { onConversationClick(user.id, user.name, user.base64Images.firstOrNull()) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF007AFF))
@@ -494,12 +494,13 @@ fun UserCard(
 @Composable
 fun MessagesTab(
     viewModel: MessagesViewModel,
-    onConversationClick: (userId: String, userName: String) -> Unit
+    onConversationClick: (userId: String, userName: String, userImage: String?) -> Unit
 ) {
     val conversations by viewModel.conversations
     val isLoading by viewModel.isLoading
 
     LaunchedEffect(Unit) {
+        viewModel.syncFromSharedCache()
         viewModel.loadConversations()
     }
 
@@ -523,7 +524,11 @@ fun MessagesTab(
                     ConversationCard(
                         conversation = conversation,
                         onClick = {
-                            onConversationClick(conversation.id, conversation.name)
+                            onConversationClick(
+                                conversation.id,
+                                conversation.name,
+                                conversation.base64Images.firstOrNull()
+                            )
                         }
                     )
                 }

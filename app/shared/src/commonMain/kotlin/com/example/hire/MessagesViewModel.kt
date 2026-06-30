@@ -9,6 +9,39 @@ import kotlinx.coroutines.launch
 class MessagesViewModel(
     private val apiService: AuthApiService = AuthApiService()
 ) : ViewModel() {
+    companion object {
+        private var cachedConversations: List<Conversation> = emptyList()
+
+        fun recordLocalSentMessage(
+            otherUserId: String,
+            otherUserName: String,
+            messageContent: String,
+            messageTimestamp: String? = null,
+            otherUserImage: String? = null
+        ) {
+            val existing = cachedConversations.firstOrNull { it.id == otherUserId }
+            val now = messageTimestamp ?: existing?.timestamp ?: "0"
+            val updated = Conversation(
+                id = otherUserId,
+                name = otherUserName,
+                lastMessage = messageContent,
+                timestamp = now,
+                color = existing?.color ?: defaultColors[kotlin.math.abs(otherUserId.hashCode()) % defaultColors.size],
+                base64Images = existing?.base64Images?.takeIf { it.isNotEmpty() }
+                    ?: otherUserImage?.let { listOf(it) }
+                    ?: emptyList()
+            )
+
+            cachedConversations = (listOf(updated) + cachedConversations.filterNot { it.id == otherUserId })
+        }
+
+        private fun cacheConversations(conversations: List<Conversation>) {
+            cachedConversations = conversations
+        }
+
+        private fun getCachedConversations(): List<Conversation> = cachedConversations
+    }
+
     private val _conversations = mutableStateOf<List<Conversation>>(emptyList())
     val conversations: State<List<Conversation>> = _conversations
 
@@ -16,6 +49,14 @@ class MessagesViewModel(
     val isLoading: State<Boolean> = _isLoading
 
     private var hasLoadedOnce = false
+
+    init {
+        val cached = getCachedConversations()
+        if (cached.isNotEmpty()) {
+            _conversations.value = cached
+            hasLoadedOnce = true
+        }
+    }
 
     fun loadConversations(forceRefresh: Boolean = false) {
         if (hasLoadedOnce && !forceRefresh) return
@@ -54,8 +95,18 @@ class MessagesViewModel(
                 }.filter { it.lastMessage.isNotBlank() }
                  .sortedByDescending { it.timestamp }
 
+            cacheConversations(_conversations.value)
+
             hasLoadedOnce = true
             _isLoading.value = false
+        }
+    }
+
+    fun syncFromSharedCache() {
+        val cached = getCachedConversations()
+        if (cached.isNotEmpty()) {
+            _conversations.value = cached
+            hasLoadedOnce = true
         }
     }
 }

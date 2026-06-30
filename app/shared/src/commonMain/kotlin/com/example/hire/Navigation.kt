@@ -17,6 +17,7 @@ data class AppState(
     val selectedHomePageTab: Int = 0,
     val chatPartnerId: String? = null,
     val chatPartnerName: String? = null,
+    val chatPartnerImage: String? = null,
     val currentUserId: String? = null,
     val currentUserName: String? = null,
     val currentUserImage: String? = null,
