@@ -3,6 +3,7 @@ package com.example.hire
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -23,7 +24,8 @@ fun ChatDetailScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val apiService = remember { AuthApiService() }
-    
+    val listState = rememberLazyListState()
+
     var messages by remember { mutableStateOf<List<Message>>(emptyList()) }
     var inputText by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
@@ -58,6 +60,12 @@ fun ChatDetailScreen(
         loadMessages()
     }
 
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.lastIndex)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -73,6 +81,8 @@ fun ChatDetailScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .imePadding()
+                    .navigationBarsPadding()
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -112,6 +122,7 @@ fun ChatDetailScreen(
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
