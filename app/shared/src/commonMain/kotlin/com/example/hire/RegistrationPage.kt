@@ -24,6 +24,46 @@ fun RegistrationPage(
     onSuccessClick: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+    var showServicePicker by remember { mutableStateOf(false) }
+    val serviceOptions = remember {
+        listOf("handyman", "electrician", "massage therapist", "pet sitter")
+    }
+
+    if (showServicePicker) {
+        AlertDialog(
+            onDismissRequest = { showServicePicker = false },
+            title = { Text("Choose service") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    serviceOptions.forEach { option ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.updateProvidedService(option)
+                                    showServicePicker = false
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = viewModel.providedService.value.equals(option, ignoreCase = true),
+                                onClick = {
+                                    viewModel.updateProvidedService(option)
+                                    showServicePicker = false
+                                }
+                            )
+                            Text(option)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showServicePicker = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -137,6 +177,14 @@ fun RegistrationPage(
                             onValueChange = viewModel::updateProvidedService,
                             label = { Text("Service you provide") },
                             placeholder = { Text("e.g. Dog Walking, Math Tutoring") },
+                            trailingIcon = {
+                                TextButton(
+                                    onClick = { showServicePicker = true },
+                                    enabled = !viewModel.isLoading.value
+                                ) {
+                                    Text("Choose")
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !viewModel.isLoading.value
                         )
