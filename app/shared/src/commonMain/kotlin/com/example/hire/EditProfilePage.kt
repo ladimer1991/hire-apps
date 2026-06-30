@@ -24,6 +24,12 @@ fun EditProfilePage(
 ) {
     val scrollState = rememberScrollState()
 
+    LaunchedEffect(viewModel.successMessage.value) {
+        if (viewModel.successMessage.value != null) {
+            onBack()
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
