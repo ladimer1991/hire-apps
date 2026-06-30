@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.*
 import androidx.compose.runtime.*
@@ -234,7 +235,12 @@ fun BrowseTab(
     val users by viewModel.users
     val isLoading by viewModel.isLoading
     val errorMessage by viewModel.errorMessage
-    val listState = rememberLazyListState()
+    val savedIndex by viewModel.firstVisibleItemIndex
+    val savedOffset by viewModel.firstVisibleItemScrollOffset
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = savedIndex,
+        initialFirstVisibleItemScrollOffset = savedOffset
+    )
 
     ApiErrorDialogHost(
         errorMessage = errorMessage,
@@ -244,6 +250,13 @@ fun BrowseTab(
 
     LaunchedEffect(Unit) {
         viewModel.loadUsers()
+    }
+
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+        viewModel.updateScrollPosition(
+            index = listState.firstVisibleItemIndex,
+            offset = listState.firstVisibleItemScrollOffset
+        )
     }
 
     // Detect if we reached the end of the list

@@ -30,6 +30,12 @@ class BrowseViewModel(
     private val _searchQuery = mutableStateOf("")
     val searchQuery: State<String> = _searchQuery
 
+    private val _firstVisibleItemIndex = mutableStateOf(0)
+    val firstVisibleItemIndex: State<Int> = _firstVisibleItemIndex
+
+    private val _firstVisibleItemScrollOffset = mutableStateOf(0)
+    val firstVisibleItemScrollOffset: State<Int> = _firstVisibleItemScrollOffset
+
     private var searchJob: Job? = null
     private var prefetchJob: Job? = null
     private val prefetchedUsersByQuery = mutableMapOf<String, List<BrowseUser>>()
@@ -68,6 +74,11 @@ class BrowseViewModel(
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    fun updateScrollPosition(index: Int, offset: Int) {
+        _firstVisibleItemIndex.value = index
+        _firstVisibleItemScrollOffset.value = offset
     }
 
     fun triggerSearch() {
