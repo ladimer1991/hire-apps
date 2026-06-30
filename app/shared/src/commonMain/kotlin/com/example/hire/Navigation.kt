@@ -20,5 +20,6 @@ data class AppState(
     val currentUserId: String? = null,
     val currentUserName: String? = null,
     val currentUserImage: String? = null,
-    val selectedUser: BrowseUser? = null
+    val selectedUser: BrowseUser? = null,
+    val isOwnProfileDetails: Boolean = false
 )

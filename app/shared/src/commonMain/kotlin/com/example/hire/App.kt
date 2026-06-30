@@ -152,8 +152,33 @@ fun App(locationPlatform: LocationPlatform? = null) {
                     onUserClick = { user ->
                         appState.value = appState.value.copy(
                             currentScreen = Screen.USER_DETAILS,
-                            selectedUser = user
+                            selectedUser = user,
+                            isOwnProfileDetails = false
                         )
+                    },
+                    onProfileImageClick = {
+                        coroutineScope.launch {
+                            apiService.getCurrentUser(forceRefresh = true).onSuccess { me ->
+                                val ownProfileUser = BrowseUser(
+                                    id = me.id ?: me.email,
+                                    name = me.username,
+                                    profession = me.providedService ?: "Professional",
+                                    hourlyRate = me.hourlyRate,
+                                    description = me.description,
+                                    color = defaultColors.first(),
+                                    base64Images = me.images,
+                                    rating = me.rating,
+                                    isSaved = false
+                                )
+                                appState.value = appState.value.copy(
+                                    currentScreen = Screen.USER_DETAILS,
+                                    selectedUser = ownProfileUser,
+                                    isOwnProfileDetails = true
+                                )
+                            }.onFailure { error ->
+                                appErrorMessage.value = error.toFriendlyApiMessage("Failed to load your profile details.")
+                            }
+                        }
                     },
                     onEditProfileClick = {
                         appState.value = appState.value.copy(currentScreen = Screen.EDIT_PROFILE)
@@ -193,6 +218,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                 if (user != null) {
                     UserDetailsPage(
                         user = user,
+                        isOwnProfile = appState.value.isOwnProfileDetails,
                         onBackClick = {
                             appState.value = appState.value.copy(currentScreen = Screen.BROWSE)
                         },
@@ -217,7 +243,8 @@ fun App(locationPlatform: LocationPlatform? = null) {
                     onUserClick = { user ->
                         appState.value = appState.value.copy(
                             currentScreen = Screen.USER_DETAILS,
-                            selectedUser = user
+                            selectedUser = user,
+                            isOwnProfileDetails = false
                         )
                     },
                     onConversationClick = { userId, userName ->

@@ -47,6 +47,7 @@ fun HomePage(
     onTabChanged: (Int) -> Unit = {},
     onBackClick: () -> Unit = {},
     onUserClick: (BrowseUser) -> Unit = {},
+    onProfileImageClick: () -> Unit = {},
     onEditProfileClick: () -> Unit = {},
     onSavedProfilesClick: () -> Unit = {},
     onConversationClick: (userId: String, userName: String) -> Unit = { _, _ -> },
@@ -197,6 +198,7 @@ fun HomePage(
                     ProfileTab(
                         userName = currentUserName ?: "User",
                         userImage = currentUserImage,
+                        onProfileImageClick = onProfileImageClick,
                         onEditProfileClick = onEditProfileClick,
                         onSavedProfilesClick = onSavedProfilesClick,
                         onLogoutClick = onBackClick
@@ -1052,6 +1054,7 @@ class CategoriesViewModel(
 fun ProfileTab(
     userName: String,
     userImage: String?,
+    onProfileImageClick: () -> Unit,
     onEditProfileClick: () -> Unit,
     onSavedProfilesClick: () -> Unit,
     onLogoutClick: () -> Unit
@@ -1076,6 +1079,12 @@ fun ProfileTab(
                     .background(Color.LightGray),
                 contentAlignment = Alignment.Center
             ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { onProfileImageClick() },
+                    contentAlignment = Alignment.Center
+                ) {
                 if (userImage != null) {
                     val bitmap = remember(userImage) {
                         decodeBase64ToBitmap(userImage)
@@ -1092,6 +1101,7 @@ fun ProfileTab(
                     }
                 } else {
                     Text("👤", fontSize = 40.sp)
+                }
                 }
             }
 

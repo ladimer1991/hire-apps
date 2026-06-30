@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun UserDetailsPage(
     user: BrowseUser,
+    isOwnProfile: Boolean = false,
     onBackClick: () -> Unit,
     onMessageClick: (String, String) -> Unit
 ) {
@@ -63,7 +64,12 @@ fun UserDetailsPage(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Profile Details", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        if (isOwnProfile) "My Profile" else "Profile Details",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     TextButton(onClick = onBackClick) {
                         Text("← Back", color = Color(0xFF007AFF), fontWeight = FontWeight.Bold)
@@ -197,25 +203,27 @@ fun UserDetailsPage(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = { /* Hire action */ },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF))
+                if (!isOwnProfile) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("Hire", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Button(
-                        onClick = { onMessageClick(user.id, user.name) },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE5F1FF), contentColor = Color(0xFF007AFF))
-                    ) {
-                        Text("Message", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Button(
+                            onClick = { /* Hire action */ },
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF))
+                        ) {
+                            Text("Hire", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = { onMessageClick(user.id, user.name) },
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE5F1FF), contentColor = Color(0xFF007AFF))
+                        ) {
+                            Text("Message", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
 
@@ -271,66 +279,68 @@ fun UserDetailsPage(
                     HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
                 }
 
-                // Add Review Section
-                Text(
-                    text = "Leave a Review",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
+                if (!isOwnProfile) {
+                    // Add Review Section
+                    Text(
+                        text = "Leave a Review",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    repeat(5) { index ->
-                        val starIndex = index + 1
-                        val isSelected = starIndex <= rating
-                        Text(
-                            text = if (isSelected) "★" else "☆",
-                            fontSize = 32.sp,
-                            color = if (isSelected) Color(0xFFFFD700) else Color.LightGray,
-                            modifier = Modifier.clickable { if (!isSubmitting) rating = starIndex }
-                        )
-                    }
-                }
-
-                OutlinedTextField(
-                    value = reviewText,
-                    onValueChange = { reviewText = it },
-                    modifier = Modifier.fillMaxWidth().height(120.dp),
-                    placeholder = { Text("Write your review here...") },
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = !isSubmitting
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            isSubmitting = true
-                            apiService.addReview(user.id, reviewText, rating.toDouble())
-                                .onSuccess { savedReview ->
-                                    localReviews = (listOf(savedReview) + localReviews)
-                                        .distinctBy { it.id ?: "${it.reviewerId}:${it.timestamp}:${it.content}" }
-                                    rating = 0
-                                    reviewText = ""
-                                }.onFailure { error ->
-                                    errorMessage = error.toFriendlyApiMessage("Failed to submit review.")
-                                }
-                            isSubmitting = false
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        repeat(5) { index ->
+                            val starIndex = index + 1
+                            val isSelected = starIndex <= rating
+                            Text(
+                                text = if (isSelected) "★" else "☆",
+                                fontSize = 32.sp,
+                                color = if (isSelected) Color(0xFFFFD700) else Color.LightGray,
+                                modifier = Modifier.clickable { if (!isSubmitting) rating = starIndex }
+                            )
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF)),
-                    enabled = rating > 0 && reviewText.isNotBlank() && !isSubmitting
-                ) {
-                    if (isSubmitting) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                    } else {
-                        Text("Submit Review", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedTextField(
+                        value = reviewText,
+                        onValueChange = { reviewText = it },
+                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                        placeholder = { Text("Write your review here...") },
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !isSubmitting
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                isSubmitting = true
+                                apiService.addReview(user.id, reviewText, rating.toDouble())
+                                    .onSuccess { savedReview ->
+                                        localReviews = (listOf(savedReview) + localReviews)
+                                            .distinctBy { it.id ?: "${it.reviewerId}:${it.timestamp}:${it.content}" }
+                                        rating = 0
+                                        reviewText = ""
+                                    }.onFailure { error ->
+                                        errorMessage = error.toFriendlyApiMessage("Failed to submit review.")
+                                    }
+                                isSubmitting = false
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF)),
+                        enabled = rating > 0 && reviewText.isNotBlank() && !isSubmitting
+                    ) {
+                        if (isSubmitting) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                        } else {
+                            Text("Submit Review", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
 
