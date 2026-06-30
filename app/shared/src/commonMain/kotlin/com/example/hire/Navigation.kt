@@ -8,7 +8,8 @@ enum class Screen {
     BROWSE,
     CHAT,
     USER_DETAILS,
-    EDIT_PROFILE
+    EDIT_PROFILE,
+    SAVED_PROFILES
 }
 
 data class AppState(

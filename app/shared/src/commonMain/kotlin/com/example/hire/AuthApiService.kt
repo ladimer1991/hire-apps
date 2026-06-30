@@ -165,6 +165,15 @@ class AuthApiService(
             httpClient.get(url).body<List<RegisterRequest>>()
         }
 
+    suspend fun getUsersByIds(userIds: List<String>): Result<List<RegisterRequest>> =
+        apiCall("getUsersByIds") {
+            if (userIds.isEmpty()) return@apiCall emptyList()
+            httpClient.post("$baseUrl/api/users/by-ids") {
+                contentType(ContentType.Application.Json)
+                setBody(userIds)
+            }.body<List<RegisterRequest>>()
+        }
+
     suspend fun getCurrentUser(forceRefresh: Boolean = false): Result<RegisterRequest> =
         apiCall("getCurrentUser") {
             meCacheMutex.withLock {

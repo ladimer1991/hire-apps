@@ -47,6 +47,7 @@ fun HomePage(
     onBackClick: () -> Unit = {},
     onUserClick: (BrowseUser) -> Unit = {},
     onEditProfileClick: () -> Unit = {},
+    onSavedProfilesClick: () -> Unit = {},
     onConversationClick: (userId: String, userName: String) -> Unit = { _, _ -> },
     browseViewModel: BrowseViewModel = viewModel { BrowseViewModel() },
     messagesViewModel: MessagesViewModel = viewModel { MessagesViewModel() },
@@ -196,6 +197,7 @@ fun HomePage(
                         userName = currentUserName ?: "User",
                         userImage = currentUserImage,
                         onEditProfileClick = onEditProfileClick,
+                        onSavedProfilesClick = onSavedProfilesClick,
                         onLogoutClick = onBackClick
                     )
                 }
@@ -212,7 +214,8 @@ data class BrowseUser(
     val description: String? = null,
     val color: Color,
     val base64Images: List<String> = emptyList(),
-    val rating: Rating? = null
+    val rating: Rating? = null,
+    val isSaved: Boolean = false
 )
 
 val defaultColors = listOf(
@@ -276,7 +279,12 @@ fun BrowseTab(
                 verticalArrangement = Arrangement.spacedBy(1.dp)
             ) {
                 items(users) { user ->
-                    UserCard(user, onUserClick, onConversationClick)
+                    UserCard(
+                        user = user,
+                        onUserClick = onUserClick,
+                        onConversationClick = onConversationClick,
+                        onSaveClick = { userId -> viewModel.toggleSavedUser(userId) }
+                    )
                 }
                 if (isLoading && users.isNotEmpty()) {
                     item {
@@ -295,7 +303,8 @@ fun BrowseTab(
 fun UserCard(
     user: BrowseUser,
     onUserClick: (BrowseUser) -> Unit,
-    onConversationClick: (String, String) -> Unit
+    onConversationClick: (String, String) -> Unit,
+    onSaveClick: (String) -> Unit
 ) {
     val pageCount = if (user.base64Images.isNotEmpty()) user.base64Images.size else 1
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { pageCount })
@@ -442,12 +451,23 @@ fun UserCard(
                         Text("Message", fontSize = 13.sp, color = Color(0xFF007AFF), fontWeight = FontWeight.SemiBold)
                     }
                     OutlinedButton(
-                        onClick = { /* Save action */ },
+                        onClick = { onSaveClick(user.id) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Gray.copy(alpha = 0.5f))
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (user.isSaved) Color(0xFFE3F2FD) else Color.Transparent
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.5.dp,
+                            if (user.isSaved) Color(0xFF007AFF) else Color.Gray.copy(alpha = 0.5f)
+                        )
                     ) {
-                        Text("Save", fontSize = 13.sp, color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (user.isSaved) "Saved" else "Save",
+                            fontSize = 13.sp,
+                            color = if (user.isSaved) Color(0xFF007AFF) else Color.Gray,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }
@@ -1020,6 +1040,7 @@ fun ProfileTab(
     userName: String,
     userImage: String?,
     onEditProfileClick: () -> Unit,
+    onSavedProfilesClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     Column(
@@ -1094,20 +1115,24 @@ fun ProfileTab(
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
-        // Placeholder for more settings
-        repeat(4) { index ->
-            val title = when(index) {
-                0 -> "Notifications"
-                1 -> "Privacy & Security"
-                2 -> "Help & Support"
-                else -> "Log Out"
-            }
+        val settingsOptions = listOf(
+            "Notifications",
+            "Privacy & Security",
+            "Help & Support",
+            "Saved Profiles",
+            "Log Out"
+        )
+
+        settingsOptions.forEachIndexed { index, title ->
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
                     .clickable { 
-                        if (index == 3) onLogoutClick()
+                        when (title) {
+                            "Saved Profiles" -> onSavedProfilesClick()
+                            "Log Out" -> onLogoutClick()
+                        }
                     },
                 shape = RoundedCornerShape(12.dp),
                 color = Color.White
@@ -1120,9 +1145,9 @@ fun ProfileTab(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = if (index == 3) Color.Red else Color.Black
+                        color = if (title == "Log Out") Color.Red else Color.Black
                     )
-                    if (index < 3) {
+                    if (title != "Log Out") {
                         Text("›", fontSize = 24.sp, color = Color.Gray)
                     }
                 }

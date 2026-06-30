@@ -36,6 +36,31 @@ class BrowseViewModel(
     private val prefetchErrorsByQuery = mutableMapOf<String, String>()
     private var latestPrefetchQueryKey: String? = null
 
+    fun toggleSavedUser(savedUserId: String) {
+        viewModelScope.launch {
+            apiService.getCurrentUser(forceRefresh = true)
+                .onSuccess { me ->
+                    val existingSavedUsers = me.savedUsers.orEmpty()
+                    val isCurrentlySaved = existingSavedUsers.contains(savedUserId)
+                    val updatedSavedUsers = if (isCurrentlySaved) {
+                        existingSavedUsers.filterNot { it == savedUserId }
+                    } else {
+                        existingSavedUsers + savedUserId
+                    }
+                    apiService.updateProfile(me.copy(savedUsers = updatedSavedUsers))
+                        .onSuccess {
+                            setUserSavedState(savedUserId, !isCurrentlySaved)
+                        }
+                        .onFailure { error ->
+                            _errorMessage.value = error.message ?: "Failed to update saved user"
+                        }
+                }
+                .onFailure { error ->
+                    _errorMessage.value = error.message ?: "Failed to load profile"
+                }
+        }
+    }
+
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
         prefetchUsers(query)
@@ -153,6 +178,7 @@ class BrowseViewModel(
         val usersResult = apiService.getAllUsers(queryParam)
         val meResult = apiService.getCurrentUser().getOrNull()
         val myId = meResult?.id ?: meResult?.email ?: ""
+        val savedUserIds = meResult?.savedUsers.orEmpty().toSet()
 
         return usersResult.map { fetchedUsers ->
             fetchedUsers
@@ -166,9 +192,25 @@ class BrowseViewModel(
                         description = user.description,
                         color = defaultColors[index % defaultColors.size],
                         base64Images = user.images,
-                        rating = user.rating
+                        rating = user.rating,
+                        isSaved = savedUserIds.contains(user.id ?: user.email)
                     )
                 }
+        }
+    }
+
+    private fun setUserSavedState(savedUserId: String, isSaved: Boolean) {
+        _internalUsers = _internalUsers.map { browseUser ->
+            if (browseUser.id == savedUserId) browseUser.copy(isSaved = isSaved) else browseUser
+        }
+        _displayedUsers.value = _internalUsers
+
+        prefetchedUsersByQuery.keys.toList().forEach { key ->
+            prefetchedUsersByQuery[key]?.let { cachedUsers ->
+                prefetchedUsersByQuery[key] = cachedUsers.map { browseUser ->
+                    if (browseUser.id == savedUserId) browseUser.copy(isSaved = isSaved) else browseUser
+                }
+            }
         }
     }
 

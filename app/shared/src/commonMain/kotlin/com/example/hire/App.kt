@@ -157,6 +157,9 @@ fun App(locationPlatform: LocationPlatform? = null) {
                     },
                     onEditProfileClick = {
                         appState.value = appState.value.copy(currentScreen = Screen.EDIT_PROFILE)
+                    },
+                    onSavedProfilesClick = {
+                        appState.value = appState.value.copy(currentScreen = Screen.SAVED_PROFILES)
                     }
                 )
             }
@@ -202,6 +205,29 @@ fun App(locationPlatform: LocationPlatform? = null) {
                         }
                     )
                 }
+            }
+            Screen.SAVED_PROFILES -> {
+                SavedProfilesPage(
+                    onBackClick = {
+                        appState.value = appState.value.copy(
+                            currentScreen = Screen.BROWSE,
+                            selectedHomePageTab = 3
+                        )
+                    },
+                    onUserClick = { user ->
+                        appState.value = appState.value.copy(
+                            currentScreen = Screen.USER_DETAILS,
+                            selectedUser = user
+                        )
+                    },
+                    onConversationClick = { userId, userName ->
+                        appState.value = appState.value.copy(
+                            currentScreen = Screen.CHAT,
+                            chatPartnerId = userId,
+                            chatPartnerName = userName
+                        )
+                    }
+                )
             }
         }
     }
