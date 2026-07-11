@@ -63,10 +63,9 @@ class MessagesViewModel(
 
         viewModelScope.launch {
             _isLoading.value = true
-            
+
             val meResult = apiService.getCurrentUser().getOrNull()
             val myId = meResult?.id ?: meResult?.email ?: ""
-            val usersResult = apiService.getAllUsers().getOrNull() ?: emptyList()
             val historyResult = apiService.getHistory().getOrNull() ?: emptyList()
 
             val conversedUserIds = historyResult.flatMap { listOf(it.senderId, it.receiverId) }
@@ -74,26 +73,38 @@ class MessagesViewModel(
                 .filter { it != myId }
                 .toSet()
 
-            _conversations.value = usersResult
-                .filter { it.id != myId && (it.id in conversedUserIds || it.email in conversedUserIds) }
-                .mapIndexed { index, user ->
-                    val userId = user.id ?: user.email
-                    val msgsWithUser = historyResult.filter { 
-                        (it.senderId == userId && it.receiverId == myId) || 
-                        (it.receiverId == userId && it.senderId == myId) 
+            val knownById = (getCachedConversations() + _conversations.value).associateBy { it.id }
+
+            // Pull-to-refresh should hit message history only; enrich with user profiles only on non-forced load.
+            val fetchedUsersById = if (forceRefresh) {
+                emptyMap()
+            } else {
+                (apiService.getUsersByIds(conversedUserIds.toList()).getOrNull() ?: emptyList())
+                    .flatMap { user ->
+                        listOfNotNull(user.id, user.email).map { key -> key to user }
                     }
-                    val lastMsg = msgsWithUser.maxByOrNull { it.timestamp }
-                    
-                    Conversation(
-                        id = userId,
-                        name = user.username,
-                        lastMessage = lastMsg?.content ?: "",
-                        timestamp = lastMsg?.timestamp?.toString() ?: "",
-                        color = defaultColors[index % defaultColors.size],
-                        base64Images = user.images
-                    )
-                }.filter { it.lastMessage.isNotBlank() }
-                 .sortedByDescending { it.timestamp }
+                    .toMap()
+            }
+
+            _conversations.value = conversedUserIds.mapNotNull { userId ->
+                val msgsWithUser = historyResult.filter {
+                    (it.senderId == userId && it.receiverId == myId) ||
+                        (it.receiverId == userId && it.senderId == myId)
+                }
+                val lastMsg = msgsWithUser.maxByOrNull { it.timestamp } ?: return@mapNotNull null
+
+                val profile = fetchedUsersById[userId]
+                val cached = knownById[userId]
+
+                Conversation(
+                    id = userId,
+                    name = profile?.username ?: cached?.name ?: userId,
+                    lastMessage = lastMsg.content,
+                    timestamp = lastMsg.timestamp?.toString() ?: "",
+                    color = cached?.color ?: defaultColors[kotlin.math.abs(userId.hashCode()) % defaultColors.size],
+                    base64Images = profile?.images ?: cached?.base64Images ?: emptyList()
+                )
+            }.sortedByDescending { it.timestamp }
 
             cacheConversations(_conversations.value)
 
