@@ -31,6 +31,14 @@ class AuthApiService(
     companion object {
         private val meCacheMutex = Mutex()
         private var meCache: RegisterRequest? = null
+        @Volatile
+        private var localSessionGeneration: Int = 0
+
+        fun getLocalSessionGeneration(): Int = localSessionGeneration
+
+        private fun bumpLocalSessionGeneration() {
+            localSessionGeneration += 1
+        }
     }
 
     private val httpClient = HttpClient {
@@ -151,13 +159,33 @@ class AuthApiService(
             authResponse
         }
 
-    suspend fun logout(): Result<Unit> =
-        apiCall("logout") {
-            httpClient.post("$baseUrl/api/users/logout")
-            sessionManager.clearSession()
-            invalidateMeCache()
-            Unit
+    suspend fun logout(): Result<Unit> {
+        val token = sessionManager.getToken()
+        clearLocalSessionData()
+
+        if (token.isNullOrBlank()) return Result.success(Unit)
+
+        return try {
+            httpClient.post("$baseUrl/api/users/logout") {
+                header("Authorization", "Bearer $token")
+            }
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // Local logout already succeeded; server revoke is best effort.
+            logApiError("logout", e)
+            Result.success(Unit)
         }
+    }
+
+    fun clearLocalSessionData() {
+        sessionManager.clearSession()
+        invalidateMeCache()
+        MessagesViewModel.clearSharedCache()
+        LocationStore.lastKnownLocation = null
+        bumpLocalSessionGeneration()
+    }
 
     suspend fun getAllUsers(searchQuery: String? = null): Result<List<RegisterRequest>> =
         apiCall("getAllUsers") {

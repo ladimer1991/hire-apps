@@ -41,6 +41,33 @@ class BrowseViewModel(
     private val prefetchedUsersByQuery = mutableMapOf<String, List<BrowseUser>>()
     private val prefetchErrorsByQuery = mutableMapOf<String, String>()
     private var latestPrefetchQueryKey: String? = null
+    private var lastObservedSessionGeneration = AuthApiService.getLocalSessionGeneration()
+
+    fun resetForNewSessionIfNeeded() {
+        val currentGeneration = AuthApiService.getLocalSessionGeneration()
+        if (currentGeneration == lastObservedSessionGeneration) return
+
+        searchJob?.cancel()
+        prefetchJob?.cancel()
+        searchJob = null
+        prefetchJob = null
+
+        _displayedUsers.value = emptyList()
+        _internalUsers = emptyList()
+        _searchQuery.value = ""
+        _errorMessage.value = null
+        _isInternalLoading.value = false
+        _isSearchTriggered.value = false
+        _isLoadingVisible.value = false
+        hasLoadedOnce = false
+        _firstVisibleItemIndex.value = 0
+        _firstVisibleItemScrollOffset.value = 0
+        prefetchedUsersByQuery.clear()
+        prefetchErrorsByQuery.clear()
+        latestPrefetchQueryKey = null
+
+        lastObservedSessionGeneration = currentGeneration
+    }
 
     fun toggleSavedUser(savedUserId: String) {
         viewModelScope.launch {
@@ -68,6 +95,7 @@ class BrowseViewModel(
     }
 
     fun updateSearchQuery(query: String) {
+        resetForNewSessionIfNeeded()
         _searchQuery.value = query
         prefetchUsers(query)
     }
@@ -82,6 +110,7 @@ class BrowseViewModel(
     }
 
     fun triggerSearch() {
+        resetForNewSessionIfNeeded()
         viewModelScope.launch {
             _errorMessage.value = null
             _isLoadingVisible.value = true
@@ -108,6 +137,7 @@ class BrowseViewModel(
     }
 
     fun triggerRefresh() {
+        resetForNewSessionIfNeeded()
         _isSearchTriggered.value = true
         _isLoadingVisible.value = true
         loadUsers(forceRefresh = true)
@@ -120,6 +150,7 @@ class BrowseViewModel(
     }
 
     suspend fun loadUsersAwait(forceRefresh: Boolean = false) {
+        resetForNewSessionIfNeeded()
         if (hasLoadedOnce && !forceRefresh) return
 
         searchJob?.cancel()

@@ -12,6 +12,10 @@ class MessagesViewModel(
     companion object {
         private var cachedConversations: List<Conversation> = emptyList()
 
+        fun clearSharedCache() {
+            cachedConversations = emptyList()
+        }
+
         fun recordLocalSentMessage(
             otherUserId: String,
             otherUserName: String,
@@ -49,6 +53,7 @@ class MessagesViewModel(
     val isLoading: State<Boolean> = _isLoading
 
     private var hasLoadedOnce = false
+    private var lastObservedSessionGeneration = AuthApiService.getLocalSessionGeneration()
 
     init {
         val cached = getCachedConversations()
@@ -59,6 +64,7 @@ class MessagesViewModel(
     }
 
     fun loadConversations(forceRefresh: Boolean = false) {
+        resetForNewSessionIfNeeded()
         if (hasLoadedOnce && !forceRefresh) return
 
         viewModelScope.launch {
@@ -114,10 +120,21 @@ class MessagesViewModel(
     }
 
     fun syncFromSharedCache() {
+        resetForNewSessionIfNeeded()
         val cached = getCachedConversations()
         if (cached.isNotEmpty()) {
             _conversations.value = cached
             hasLoadedOnce = true
         }
+    }
+
+    fun resetForNewSessionIfNeeded() {
+        val currentGeneration = AuthApiService.getLocalSessionGeneration()
+        if (currentGeneration == lastObservedSessionGeneration) return
+
+        _conversations.value = emptyList()
+        _isLoading.value = false
+        hasLoadedOnce = false
+        lastObservedSessionGeneration = currentGeneration
     }
 }

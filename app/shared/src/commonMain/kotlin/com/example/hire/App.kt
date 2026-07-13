@@ -137,10 +137,8 @@ fun App(locationPlatform: LocationPlatform? = null) {
                         appState.value = appState.value.copy(selectedHomePageTab = newTab)
                     },
                     onBackClick = {
-                        coroutineScope.launch {
-                            apiService.logout()
-                            appState.value = AppState(currentScreen = Screen.ENTRY)
-                        }
+                        apiService.clearLocalSessionData()
+                        appState.value = AppState(currentScreen = Screen.ENTRY)
                     },
                     onConversationClick = { userId, userName, userImage ->
                         appState.value = appState.value.copy(

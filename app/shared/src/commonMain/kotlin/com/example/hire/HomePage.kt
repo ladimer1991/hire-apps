@@ -59,6 +59,8 @@ fun HomePage(
     val tabs = listOf("Browse", "Messages", "Categories", "Profile")
 
     LaunchedEffect(browseViewModel, messagesViewModel, categoriesViewModel, currentUserId) {
+        browseViewModel.resetForNewSessionIfNeeded()
+        messagesViewModel.resetForNewSessionIfNeeded()
         categoriesViewModel.updateCurrentUserId(currentUserId)
         browseViewModel.loadUsersAwait()
         messagesViewModel.loadConversations()
@@ -898,6 +900,7 @@ class CategoriesViewModel(
     private val apiService: AuthApiService = AuthApiService()
 ) : ViewModel() {
     private var currentUserId: String? = null
+    private var lastObservedSessionGeneration = AuthApiService.getLocalSessionGeneration()
 
     private val _tutors = mutableStateOf<List<BrowseUser>>(emptyList())
     val tutors: State<List<BrowseUser>> = _tutors
@@ -946,7 +949,32 @@ class CategoriesViewModel(
 
     private var hasLoadedOnce = false
 
+    fun resetForNewSessionIfNeeded() {
+        val currentGeneration = AuthApiService.getLocalSessionGeneration()
+        if (currentGeneration == lastObservedSessionGeneration) return
+
+        currentUserId = null
+        _tutors.value = emptyList()
+        _handymen.value = emptyList()
+        _petSitters.value = emptyList()
+        _electricians.value = emptyList()
+        _relaxPros.value = emptyList()
+        _tutorsError.value = null
+        _handymenError.value = null
+        _petSittersError.value = null
+        _electriciansError.value = null
+        _relaxProsError.value = null
+        _tutorsLoading.value = false
+        _handymenLoading.value = false
+        _petSittersLoading.value = false
+        _electriciansLoading.value = false
+        _relaxProsLoading.value = false
+        hasLoadedOnce = false
+        lastObservedSessionGeneration = currentGeneration
+    }
+
     fun updateCurrentUserId(userId: String?) {
+        resetForNewSessionIfNeeded()
         currentUserId = userId?.takeIf { it.isNotBlank() }
 
         if (currentUserId == null) return
@@ -959,6 +987,7 @@ class CategoriesViewModel(
     }
 
     fun loadCategories(forceRefresh: Boolean = false) {
+        resetForNewSessionIfNeeded()
         if (hasLoadedOnce && !forceRefresh) return
 
         loadCategory(
