@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "888341708869",
+    "project_id": "hire-project-01",
+    "storage_bucket": "hire-project-01.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:888341708869:android:8532220dc3c71446bea32c",
+        "android_client_info": {
+          "package_name": "com.example.hire"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvZvaiLY6UhPyYERjDFbLFmQ8a4eBDCO4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
