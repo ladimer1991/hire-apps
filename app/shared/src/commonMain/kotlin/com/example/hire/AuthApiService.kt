@@ -31,7 +31,6 @@ class AuthApiService(
     companion object {
         private val meCacheMutex = Mutex()
         private var meCache: RegisterRequest? = null
-        @Volatile
         private var localSessionGeneration: Int = 0
 
         fun getLocalSessionGeneration(): Int = localSessionGeneration
@@ -161,20 +160,30 @@ class AuthApiService(
 
     suspend fun logout(): Result<Unit> {
         val token = sessionManager.getToken()
-        clearLocalSessionData()
-
-        if (token.isNullOrBlank()) return Result.success(Unit)
+        if (token.isNullOrBlank()) {
+            clearLocalSessionData()
+            return Result.success(Unit)
+        }
 
         return try {
+            // Best effort: clear push token server-side so logged-out users stop receiving notifications.
+            httpClient.put("$baseUrl/api/users/push-token") {
+                header("Authorization", "Bearer $token")
+                contentType(ContentType.Application.Json)
+                setBody(PushTokenUpdateRequest(fcmToken = null))
+            }
+
             httpClient.post("$baseUrl/api/users/logout") {
                 header("Authorization", "Bearer $token")
             }
+            clearLocalSessionData()
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
             // Local logout already succeeded; server revoke is best effort.
             logApiError("logout", e)
+            clearLocalSessionData()
             Result.success(Unit)
         }
     }
@@ -229,6 +238,24 @@ class AuthApiService(
                 setBody(message)
             }.body<Message>()
         }
+
+    suspend fun updatePushToken(fcmToken: String?): Result<Unit> =
+        apiCall("updatePushToken") {
+            val response = httpClient.put("$baseUrl/api/users/push-token") {
+                contentType(ContentType.Application.Json)
+                setBody(PushTokenUpdateRequest(fcmToken = fcmToken))
+            }
+            if (!response.status.isSuccess()) {
+                throw Exception("Failed to update push token")
+            }
+            Unit
+        }
+
+    suspend fun syncStoredPushToken(): Result<Unit> {
+        val storedToken = PushTokenStore().getToken()
+        if (storedToken.isNullOrBlank()) return Result.success(Unit)
+        return updatePushToken(storedToken)
+    }
 
     suspend fun getConversation(otherUserId: String): Result<List<Message>> =
         apiCall("getConversation") {

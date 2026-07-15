@@ -8,3 +8,4 @@ import com.russhwolf.settings.ExperimentalSettingsImplementation
 actual fun createSecureSettings(): Settings {
     return KeychainSettings("HireApp_Keychain")
 }
+

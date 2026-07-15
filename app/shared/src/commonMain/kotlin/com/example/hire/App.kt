@@ -39,6 +39,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                         currentUserName = user.username,
                         currentUserImage = user.images.firstOrNull()
                     )
+                    coroutineScope.launch { apiService.syncStoredPushToken() }
                 }.onFailure { error ->
                     //appErrorMessage.value = error.toFriendlyApiMessage("Unable to restore your session.") we don't wanna show this either.
                     // Token expired or invalid, clear it
@@ -89,6 +90,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                                     currentUserName = user?.username,
                                     currentUserImage = user?.images?.firstOrNull()
                                 )
+                                apiService.syncStoredPushToken()
                             }
                         } ?: run {
                             coroutineScope.launch {
@@ -99,6 +101,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                                     currentUserName = user?.username,
                                     currentUserImage = user?.images?.firstOrNull()
                                 )
+                                apiService.syncStoredPushToken()
                             }
                         }
                     }
@@ -119,6 +122,7 @@ fun App(locationPlatform: LocationPlatform? = null) {
                                     currentUserName = user.username,
                                     currentUserImage = user.images.firstOrNull()
                                 )
+                                apiService.syncStoredPushToken()
                             }.onFailure { error ->
                                 appErrorMessage.value = error.toFriendlyApiMessage("Logged in, but we could not load your profile.")
                                 appState.value = appState.value.copy(currentScreen = Screen.BROWSE)

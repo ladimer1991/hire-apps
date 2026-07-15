@@ -14,9 +14,15 @@ data class RegisterRequest(
     val images: List<String> = emptyList(),
     val savedUsers: List<String>? = null,
     val isServiceProvider: Boolean = true,
+    val fcmToken: String? = null,
     val rating: Rating? = null,
     val creditCard: CreditCardInfo? = null,
     val billingAddress: BillingAddress? = null
+)
+
+@Serializable
+data class PushTokenUpdateRequest(
+    val fcmToken: String? = null
 )
 
 @Serializable

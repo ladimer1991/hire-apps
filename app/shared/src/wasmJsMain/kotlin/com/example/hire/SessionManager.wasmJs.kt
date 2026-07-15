@@ -6,3 +6,4 @@ import com.russhwolf.settings.StorageSettings
 actual fun createSecureSettings(): Settings {
     return StorageSettings()
 }
+
